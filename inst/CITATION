@@ -1,0 +1,7 @@
+bibentry(bibtype = "article",
+    title = "RATTACA",
+    author = c(person(c("Bejamin", "B."),"Johnson"),
+               person(c("Abraham", "A."), "Palmer")),
+    journal = "bioRxiv",
+    year ="2023"
+)

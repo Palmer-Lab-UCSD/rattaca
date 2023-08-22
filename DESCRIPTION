@@ -1,0 +1,28 @@
+Package: rattaca
+Type: Package
+Title: RATTACA: fit and predict traits from genotypes
+Version: 0.0.2
+Date: 2023-08-15
+Author: Robert Vogel [aut, cre],
+    Benjamin Johnson [ctb]
+Maintainer: Robert Vogel <rmvogel@health.ucsd.edu>
+Depends:
+    R (>= 4.2)
+Import:
+    genio (>= 1.1.2),
+    rrBLUP (>= 4.6.2)
+Suggests:
+    testthat (>= 3.1.2)
+Description: The RATTACA method aims at predicting rat
+    traits from low coverage sequencing measurements.
+    Using these trait predictions, animals with predicted
+    extreme phenotypes will be selected for study.  Here
+    we provide helper tools for fitting a Linear
+    Mixed Model (LMM) with the 'rrBLUP' package to
+    data, assess the LMM performance under the
+    stated goals of the RATTACA project, and scripts to
+    integrate in bioinformatic pipelines.
+Encoding: UTF-8
+Copyright: #TODO
+License: #TODO
+RoxygenNote: 7.2.3
