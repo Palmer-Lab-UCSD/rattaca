@@ -24,32 +24,22 @@
 predict_lmm <- function(genotypes, u, intercept)
 {
     if (!is.matrix(genotypes))
-    {
         genotypes <- as.matrix(genotypes, mode="double")
-    }
 
     if (!is.matrix(u))
-    {
-        u <- as.matrix(u, nrow=length(u), ncol=1, mode="double")
-    }
+        u <- matrix(u, nrow=length(u), ncol=1)
 
     if (!is.matrix(intercept) || !is.vector(intercept))
-    {
         intercept <- as.vector(intercept, mode="double")
-    }
 
     if (dim(genotypes)[2] != dim(u)[1])
-    {
         stop("Matrix and vector dimensions are incompatible")
-    }
 
     tmp_predict <- drop(genotypes %*% u + intercept)
 
     # TODO: don't i know the type of tmp_predict?
     if (is.vector(tmp_predict))
-    {
         names(tmp_predict) <- rownames(genotypes)
-    }
 
     return(tmp_predict)
 }
@@ -125,14 +115,10 @@ fit <- function(trait, genotypes)
 {
     # check data
     if (any(is.na(trait)) || any(is.na(genotypes)))
-    {
         stop("Data contains NA values, check validity")
-    }
 
     if (!is_genotype(genotypes))
-    {
         stop("Not genotype data")
-    }
 
 
     # TODO: check that row names match?
@@ -147,9 +133,9 @@ fit <- function(trait, genotypes)
 
     # goodness-of-fit measures
     out[["r_sq"]] <- compute_r_sq(trait, tmp_predict)
-    out[["pearson_corr"]] <- cor(trait, tmp_predict,
+    out[["pearson_corr"]] <- stats::cor(trait, tmp_predict,
                                  method="pearson")
-    out[["spearman_corr"]] <- cor(trait, tmp_predict,,
+    out[["spearman_corr"]] <- stats::cor(trait, tmp_predict,,
                                   method="spearman")
 
     return(out)
@@ -164,46 +150,45 @@ fit <- function(trait, genotypes)
 #' @export
 #'
 #' @param intercept (double) 
-#' @param u ((q markers,) vector) of BLUPs, that is the 
-#'      expected value of the random marker effect sizes
-#' @param int_se (NULL | double) standard deviation of the LMM
-#'      random error term.
-#' @param u_se (NULL | (q_markers,) vector) of stardard
-#'      error of the BLUPs
+#' @param u ((q markers,) vector) 
+#'      vector of BLUPs, that is the expected value of the
+#'      random marker effect sizes
+#' @param sd_error (double)
+#'      standard deviation of the model error.
+#' @param int_se (NULL | double)
+#'      standard deviation of the LMM random error term.
+#' @param u_se (NULL | (q_markers,) vector)
+#'      of standard error of the BLUPs
 #'
-#' @return (function) for generating samples from genotypes
-#'      under the rrBLUP LMM
+#' @return (function)
+#'      for generating samples from genotypes under the 
+#'      rrBLUP LMM
 #
-simulator <- function(intercept, u, int_se=NULL, u_se=NULL)
+simulator <- function(intercept, u, sd_error, int_se=NULL, u_se=NULL)
 {
 
     get_n_samples <- function(dims)
-    {
-        return(ifelse(is.null(dims),
-                      1,
-                      dims[1]))
-    }
+        return(ifelse(is.null(dims), 1, dims[1]))
 
     if(is.null(u_se))
     {
         sample_generator <- function(genotypes)
         {
             return(predict_lmm(genotypes, u, intercept)
-                  + rnorm(get_n_samples(dim(genotypes)), 0, sd_env))
+                 + stats::rnorm(get_n_samples(dim(genotypes)), 0, sd=sd_error))
         }
-    } 
-    else if(length(u) == length(u_se))
-    {
+    } else if(length(u) == length(u_se)) {
+
         sample_generator <- function(genotypes)
         {
             return(predict_lmm(genotypes,
-                           rnorm(length(u), mean=u, sd=u_se),
+                           stats::rnorm(length(u), mean=u, sd=u_se),
                            intercept)
-                + rnorm(get_n_samples(dim(genotypes)), 0, sd=sd_env))
+                + stats::rnorm(get_n_samples(dim(genotypes)), 0, sd=sd_error))
         }
-    } else {
+
+    } else
         stop("Wrong input")
-    }
 
     return(sample_generator)
 }

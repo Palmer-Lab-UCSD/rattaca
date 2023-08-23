@@ -49,18 +49,18 @@ read_pars <- function(filename)
 
     meta <- list()
 
-    line <- strcapture(meta_str_pattern,
-                       readLines(con=fconn, n=1),
-                       proto, perl=TRUE)
+    line <- utils::strcapture(meta_str_pattern,
+                              readLines(con=fconn, n=1),
+                              proto, perl=TRUE)
     while(!any(is.na(line)))
     {
         meta[[line$key]] <- line$val
 
         raw_line <- readLines(con=fconn, n=1)
 
-        line <- strcapture(meta_str_pattern,
-                           raw_line,
-                           proto, perl=TRUE)
+        line <- utils::strcapture(meta_str_pattern,
+                                  raw_line,
+                                  proto, perl=TRUE)
     }
     
 
@@ -68,14 +68,14 @@ read_pars <- function(filename)
     proto <- data.frame(index=character(),
                         u=character(),
                         u_se=character())
-    header = strcapture(paste0("^",
-                               HEADER_PREFIX,
-                               "(.+),(.+),(.+)$"),
-                        raw_line,
-                        proto)
+    header = utils::strcapture(paste0("^",
+                                   HEADER_PREFIX,
+                                   "(.+),(.+),(.+)$"),
+                            raw_line,
+                            proto)
 
     # parameter values
-    data <- read.csv(fconn, sep=",", header=FALSE)
+    data <- utils::read.csv(fconn, sep=",", header=FALSE)
     close(fconn)
 
     rownames(data) <- data$V1
@@ -90,6 +90,8 @@ read_pars <- function(filename)
 
 
 # TODO: how to close file connections in R upon an error
+# TODO: add misc. key val pair inputs using ellipses to input args
+
 #' Write inferred parameters to file
 #'
 #' @export
@@ -105,16 +107,13 @@ read_pars <- function(filename)
 write_pars <- function(trait, trait_file, genotype_prefix,
                       pars, filename)
 {
-    sess_info <- sessionInfo()
+    sess_info <- utils::sessionInfo()
 
     fconn <- file(description=filename,
                   open="wt",
                   encoding=ENCODING)
 
-    writeLines(c(paste(paste0(META_PREFIX,"fit_blup_version"),
-                       VERSION,
-                       sep=META_KEY_VAL_DELIM),
-                 paste(paste0(META_PREFIX,"date"),
+    writeLines(c(paste(paste0(META_PREFIX,"date"),
                        Sys.time(),
                        sep=META_KEY_VAL_DELIM),
                  paste(paste0(META_PREFIX, "user"),
@@ -140,7 +139,7 @@ write_pars <- function(trait, trait_file, genotype_prefix,
                con=fconn)
 
     pkg_info <- vector(mode="character",
-                       length(sessionInfo()$otherPkgs))
+                       length(utils::sessionInfo()$otherPkgs))
     i <- 1
     for (tmp_pkg_info in sess_info$otherPkgs)
     {
@@ -199,4 +198,3 @@ write_pars <- function(trait, trait_file, genotype_prefix,
     close(fconn)
 
 }
-

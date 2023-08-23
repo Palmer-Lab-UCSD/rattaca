@@ -32,14 +32,12 @@ power_analysis <- function(geno_low, geno_high, sim,
         tmp_high <- sim(geno_high)
         tmp_low <- sim(geno_low)
 
-        out <- wilcox.test(tmp_high, y=tmp_low,
-                           alternative=c("greater"),
-                           paired=FALSE, mu=0)
+        out <- stats::wilcox.test(tmp_high, y=tmp_low,
+                                  alternative=c("greater"),
+                                  paired=FALSE, mu=0)
 
         if (out$p.value < significance_level)
-        {
             num_reject_null <- num_reject_null + 1
-        }
     }
 
     return(num_reject_null / m_power_reps)
@@ -58,11 +56,9 @@ power_analysis <- function(geno_low, geno_high, sim,
 compute_r_sq <- function(true_vals, predictions)
 {
     if (length(true_vals) != length(predictions))
-    {
         stop("Number of true_vals and predictions must be equal")
-    }
 
-    return(1 - var(true_vals - predictions) / var(true_vals))
+    return(1 - stats::var(true_vals - predictions) / stats::var(true_vals))
 }
 
 
@@ -82,9 +78,8 @@ mean_imputation <- function(v)
     num_na_vals <- sum(is.na(v))
 
     if (num_na_vals == 0)
-    {
         return(v)
-    } else if (num_na_vals < length(v)) {
+    else if (num_na_vals < length(v)) {
 
         v[is.na(v)] <- mean(v, na.rm=TRUE)
         return(v)
@@ -113,9 +108,7 @@ mean_imputation <- function(v)
 impute <- function(genotypes)
 {
     if (length(dim(genotypes)) != 2)
-    {
         stop("Genotypes must by an (n sample, q marker) matrix")
-    }
 
     return(apply(genotypes, 1, mean_imputation))
 }
