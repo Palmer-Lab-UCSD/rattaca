@@ -7,7 +7,7 @@ Author: Robert Vogel [aut, cre],
     Benjamin Johnson [ctb]
 Maintainer: Robert Vogel <rmvogel@health.ucsd.edu>
 Depends:
-    R (>= 4.2)
+    R (>= 4.1)
 Import:
     genio (>= 1.1.2),
     rrBLUP (>= 4.6.2)
