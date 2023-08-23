@@ -10,7 +10,7 @@
 library(rattaca)
 
 
-VERSION = "1.0.1"
+VERSION = "1.0.2"
 LOG_DELIMITER = " : "
 
 
@@ -92,10 +92,12 @@ parse_args <- function(args)
                 help="name of trait used in trait table."),
             "--trait_rat_id_colname" = rattaca::argument(
                 default_val="rfid",
-                help="Column name of rat id's in trait file."),
+                help="Column name of rat id's in trait file.",
+                required=FALSE),
             "--genotype_rat_id_colname" = rattaca::argument(
                 default_val="id",
-                help="Column name of rat id's in fam file."),
+                help="Column name of rat id's in fam file.",
+                required=FALSE),
             "--out_dir" = rattaca::argument(
                 help="Path to directory to write results"),
             description=paste(

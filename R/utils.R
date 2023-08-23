@@ -24,9 +24,7 @@ is_genotype <- function(x, imputed_vals=TRUE)
 {
 
     if (imputed_vals)
-    {
         return(all(x <= 1) && all(x >= -1))        
-    } 
 
     return(length(setdiff(x, c(1, 0, -1))) == 0)
 }
@@ -64,7 +62,7 @@ load_and_prepare_trait_data <- function(filename,
                                         col_to_rownames,
                                         trait_name)
 {
-    data <- read.csv(filename)
+    data <- utils::read.csv(filename)
     data <- data[!is.na(data[,trait_name]), ]
 
     rownames(data) <- data[, col_to_rownames]
@@ -74,23 +72,35 @@ load_and_prepare_trait_data <- function(filename,
 
 
 # TODO add arg type
+
 #' Specify command line argument values
 #'
 #' @export
 #'
-#' @param default_val (number | string) (default NULL)
-#' @param help_string (string) (default NULL)
+#' @param default_val (NULL | interger | double | string)
+#'      (default NULL)
+#' @param help (string)
+#'      (default NULL) documentation to be printed with --help
+#' @param required (bool) 
+#'      (default TRUE) whether the argument is required input
 #'
 #' @return (list) with correct key value pairs for parsing
 #
-argument <- function(default_val=NULL, help_string=NULL)
+argument <- function(default_val=NULL,
+                     help=NULL,
+                     required=TRUE, type="character")
 {
-    return(list(val=default_val, help=help_string))
+
+    if (is.null(default_val) || storage.mode(default_val) == type)
+        return(list(val=default_val, help=help, type=type, required=required))
+
+    stop("Default value doesn't match specified type")
 }
 
 
 # TODO add type checking of argument inputs
 # TODO add required specification
+
 #' Parse command line arguments
 #'
 #' @export
@@ -112,41 +122,61 @@ argument_parser <- function(..., description=NULL)
     parse_arguments <- function(args)
     {
 
-        if (length(args) == 0 || args[1] == "--help")
+        # Should we print help?
+        if ("--help" %in% args)
         {
 
             if (!is.null(description))
-            {
-                cat(sprintf("%s\n\n",description))
-            }
+                cat(sprintf("%s\n\n", description))
             
             # TODO: need a better strategy for formatting
             # argument help entries
             cat(sprintf("%s\n", "Arguments"))
 
             for (a in names(arg_defs))
-            {
                 cat(sprintf("%s\t%s\n", a, arg_defs[[a]]$help))
-            }
             
             return(NULL)
         }
 
+        
+        # Count the number of required inputs, this number will
+        # validate whether all required inputs are given
+        num_required <- 0
+        for (key in names(arg_defs))
+        {
+            if (arg_defs[[key]]$required)
+                num_required <- num_required + 1
+        }
+
+        # instantiate output list
         arg_out <- sapply(names(arg_defs),
                           function(x) arg_defs[[x]]$val)
 
-        i <- 1
 
+        # parser input arguments vector
+        i <- 1
         while (i <= length(args))
         {
-            if (!(args[i] %in% names(arg_defs)))
-            {
-                stop("Invalid option, see --help for options") 
-            }
 
-            arg_out[[args[i]]] <- args[i+1]
+            # inputs that are not specified raise exception
+
+            if (!(args[i] %in% names(arg_defs)))
+                stop("Invalid option, see --help for options") 
+            else if (arg_defs[[args[i]]]$required)
+                num_required <- num_required - 1
+
+            tmp_key <- args[i]
+            tmp_val <- args[i+1]
+
+            storage.mode(tmp_val) <- arg_defs[[tmp_key]]$type
+
+            arg_out[[tmp_key]] <- tmp_val
             i <- i + 2
         }
+
+        if (num_required != 0)
+            stop("All required inputs not specified")
 
         return(arg_out)
     }
