@@ -2,17 +2,18 @@
 % Please edit documentation in R/utils.R
 \name{load_and_prepare_plink_data}
 \alias{load_and_prepare_plink_data}
-\title{Load plink genotypes and perform imputation}
+\title{Load plink genotypes and perform mean imputation}
 \usage{
 load_and_prepare_plink_data(prefix_name)
 }
 \arguments{
-\item{prefix_name}{(character) prefix of plink
-bim, bed, and fam files that will be loaded}
+\item{prefix_name}{(character)
+prefix of plink bim, bed, and fam files that will be loaded}
 }
 \value{
 ((n sample, q markers) matrix)
+     of genotype values
 }
 \description{
-Load plink genotypes and perform imputation
+Load plink genotypes and perform mean imputation
 }

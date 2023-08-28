@@ -4,12 +4,17 @@
 \alias{argument}
 \title{Specify command line argument values}
 \usage{
-argument(default_val = NULL, help_string = NULL)
+argument(default_val = NULL, help = NULL, required = TRUE, type = "character")
 }
 \arguments{
-\item{default_val}{(number | string) (default NULL)}
+\item{default_val}{(NULL | interger | double | string)
+(default NULL)}
 
-\item{help_string}{(string) (default NULL)}
+\item{help}{(string)
+(default NULL) documentation to be printed with --help}
+
+\item{required}{(bool) 
+(default TRUE) whether the argument is required input}
 }
 \value{
 (list) with correct key value pairs for parsing

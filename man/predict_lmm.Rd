@@ -7,19 +7,22 @@
 predict_lmm(genotypes, u, intercept)
 }
 \arguments{
-\item{genotypes}{((n sample, q markers) array | matrix) of
-sample genotypes.  Genotypes should be encoded 1,0,-1}
+\item{genotypes}{((n sample, q markers) array | matrix)
+sample genotypes encoded on the interval [-1, 1].  the
+elements that are not integers (i.e. (-1,0,1)) are assumed
+to have been appropriately impurted}
 
-\item{u}{((q markers,) vector | (q markers,1) matrix) of
-effect sizes for random effects}
+\item{u}{((q markers,) vector | (q markers,1) matrix)
+estimated random effects parameters}
 
 \item{intercept}{(double)}
 }
 \value{
-predictions
+((n sample,) vector)
+     trait predictions predictions
 }
 \description{
-The `predict_lmm` function returns the value of a 
-quantitative trait from an animal's genotype and
-provided parameters inferred from a reference data set.
+Compute the quantitative trait from an animal's genotype and
+provided parameters. Parameters are inferred from a reference
+data set.
 }

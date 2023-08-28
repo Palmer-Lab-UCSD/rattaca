@@ -2,22 +2,27 @@
 % Please edit documentation in R/utils.R
 \name{load_and_prepare_trait_data}
 \alias{load_and_prepare_trait_data}
-\title{load trait data from csv and set row index to given column}
+\title{load trait data from csv and prepare}
 \usage{
 load_and_prepare_trait_data(filename, col_to_rownames, trait_name)
 }
 \arguments{
-\item{filename}{(character) path to trait csv table}
+\item{filename}{(character)
+path to trait csv table}
 
-\item{col_to_rownames}{(character) name of column whose
-values will be the row index names}
+\item{col_to_rownames}{(character)
+name of column whose values will be the row index names}
 
-\item{trait_name}{(character) name of column whose values
-consists of normalized trait measurements}
+\item{trait_name}{(character)
+name of column whose values consists of noramlized
+trait measurements}
 }
 \value{
-(dataframe)
+((n sample, 1) dataframe)
+     row names are sample id's, column lone column are
 }
 \description{
-load trait data from csv and set row index to given column
+Data are loaded assuming a header exists.  Using this 
+     header, the row names are set to the sample id's and
+     and samples with trait value equal to NA are removed.
 }
