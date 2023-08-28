@@ -1,7 +1,9 @@
 # Run rrBLUP on specified data and save parameters to file
 #
-# By: Robert Vogel
+# Author: Robert Vogel
 # Date: 2023-08-10
+#
+# Contributors:
 #
 
 # TODO: Existing files will be overwritten!

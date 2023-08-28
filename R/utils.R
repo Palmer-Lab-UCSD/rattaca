@@ -1,7 +1,10 @@
 # Utility functions for RATTACA
 #
-# By: Robert Vogel
+# Author: Robert Vogel
 # Date: 2023-08-20
+#   
+# Contributors:
+#   
 #
 
 #' Test whether a matrix consists of genotype data
@@ -30,13 +33,15 @@ is_genotype <- function(x, imputed_vals=TRUE)
 }
 
 
-#' Load plink genotypes and perform imputation
+#' Load plink genotypes and perform mean imputation
 #'
 #' @export
-#' @param prefix_name (character) prefix of plink
-#'       bim, bed, and fam files that will be loaded
+#' 
+#' @param prefix_name (character)
+#'      prefix of plink bim, bed, and fam files that will be loaded
 #'
 #' @return ((n sample, q markers) matrix)
+#'      of genotype values
 load_and_prepare_plink_data <- function(prefix_name)
 {
     # the genotype matrix with q marker rows and
@@ -47,25 +52,37 @@ load_and_prepare_plink_data <- function(prefix_name)
 }
 
 
-#' load trait data from csv and set row index to given column
+#' load trait data from csv and prepare
+#'
+#' @description
+#'      Data are loaded assuming a header exists.  Using this 
+#'      header, the row names are set to the sample id's and
+#'      and samples with trait value equal to NA are removed.
 #'
 #' @export
 #'
-#' @param filename (character) path to trait csv table
-#' @param col_to_rownames (character) name of column whose
-#'        values will be the row index names
-#' @param trait_name (character) name of column whose values
-#'        consists of normalized trait measurements
+#' @param filename (character)
+#'      path to trait csv table
+#' @param col_to_rownames (character)
+#'      name of column whose values will be the row index names
+#' @param trait_name (character)
+#'      name of column whose values consists of noramlized
+#'      trait measurements
 #' 
-#' @return (dataframe)
+#' @return ((n sample, 1) dataframe)
+#'      row names are sample id's, column lone column are 
+#
 load_and_prepare_trait_data <- function(filename,
                                         col_to_rownames,
                                         trait_name)
 {
-    data <- utils::read.csv(filename)
+    data <- utils::read.csv(filename)[,c(col_to_rownames,
+                                         trait_name)]
+
     data <- data[!is.na(data[,trait_name]), ]
 
     rownames(data) <- data[, col_to_rownames]
+    data[,col_to_rownames] <- NULL
 
     return(data)
 }
@@ -92,7 +109,10 @@ argument <- function(default_val=NULL,
 {
 
     if (is.null(default_val) || storage.mode(default_val) == type)
-        return(list(val=default_val, help=help, type=type, required=required))
+    {
+        return(list(val=default_val, help=help,
+                    type=type, required=required))
+    }
 
     stop("Default value doesn't match specified type")
 }
@@ -134,7 +154,9 @@ argument_parser <- function(..., description=NULL)
             cat(sprintf("%s\n", "Arguments"))
 
             for (a in names(arg_defs))
+            {
                 cat(sprintf("%s\t%s\n", a, arg_defs[[a]]$help))
+            }
             
             return(NULL)
         }
@@ -151,7 +173,7 @@ argument_parser <- function(..., description=NULL)
 
         # instantiate output list
         arg_out <- sapply(names(arg_defs),
-                          function(x) arg_defs[[x]]$val)
+                          function(x){arg_defs[[x]]$val})
 
 
         # parser input arguments vector
@@ -162,9 +184,11 @@ argument_parser <- function(..., description=NULL)
             # inputs that are not specified raise exception
 
             if (!(args[i] %in% names(arg_defs)))
-                stop("Invalid option, see --help for options") 
-            else if (arg_defs[[args[i]]]$required)
+            {
+                stop("Invalid option, see --help for options")
+            } else if (arg_defs[[args[i]]]$required) {
                 num_required <- num_required - 1
+            }
 
             tmp_key <- args[i]
             tmp_val <- args[i+1]

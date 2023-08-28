@@ -3,6 +3,8 @@
 # By: Robert Vogel
 # Date: 2023-08-20
 #
+# Contributors
+#
 
 # TODO
 #' Power analysis given genotypes and model simulator

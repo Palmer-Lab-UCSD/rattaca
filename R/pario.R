@@ -1,7 +1,9 @@
 # RATTACA parameter IO
 #
-# By: Robert Vogel
+# Author: Robert Vogel
 # Date: 2023-08-21
+#
+# Contributors:
 #
 
 META_PREFIX <- "##"
