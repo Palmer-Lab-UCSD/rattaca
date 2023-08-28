@@ -1,4 +1,4 @@
-# Rattaca rrBLUP model helper functions
+# Rattaca rrBLUP fit, prediction, and simulation
 #
 # By: Robert Vogel
 # Date: 2023-08-14
@@ -7,39 +7,45 @@
 #' Predict trait values from genotype
 #'
 #' @description
-#' The `predict_lmm` function returns the value of a 
-#' quantitative trait from an animal's genotype and
-#' provided parameters inferred from a reference data set.
+#' Compute the quantitative trait from an animal's genotype and
+#' provided parameters. Parameters are inferred from a reference
+#' data set.
 #'
 #' @export
 #'
-#' @param genotypes ((n sample, q markers) array | matrix) of
-#'      sample genotypes.  Genotypes should be encoded 1,0,-1
-#' @param u ((q markers,) vector | (q markers,1) matrix) of
-#'      effect sizes for random effects
+#' @param genotypes ((n sample, q markers) array | matrix)
+#'      sample genotypes encoded on the interval [-1, 1].  the
+#'      elements that are not integers (i.e. (-1,0,1)) are assumed
+#'      to have been appropriately impurted
+#' @param u ((q markers,) vector | (q markers,1) matrix)
+#'      estimated random effects parameters
 #' @param intercept (double)
 #'
-#' @return predictions
+#' @return ((n sample,) vector)
+#'      trait predictions predictions
 #
 predict_lmm <- function(genotypes, u, intercept)
 {
     if (!is.matrix(genotypes))
-        genotypes <- as.matrix(genotypes, mode="double")
+        genotypes <- as.matrix(genotypes)
 
     if (!is.matrix(u))
         u <- matrix(u, nrow=length(u), ncol=1)
 
-    if (!is.matrix(intercept) || !is.vector(intercept))
-        intercept <- as.vector(intercept, mode="double")
+
+    if (!is.vector(intercept))
+        intercept <- as.vector(intercept)
+    
+    if (length(intercept) != 1 &&
+        length(intercept) != dim(genotypes)[1])
+        stop("Intercept should have length 1 or n_samples")
 
     if (dim(genotypes)[2] != dim(u)[1])
         stop("Matrix and vector dimensions are incompatible")
 
     tmp_predict <- drop(genotypes %*% u + intercept)
 
-    # TODO: don't i know the type of tmp_predict?
-    if (is.vector(tmp_predict))
-        names(tmp_predict) <- rownames(genotypes)
+    names(tmp_predict) <- rownames(genotypes)
 
     return(tmp_predict)
 }
@@ -142,10 +148,15 @@ fit <- function(trait, genotypes)
 }
 
 
-#' Make a closure of the LMM
+get_n_samples <- function(dims)
+    return(ifelse(is.null(dims), 1, dims[1]))
+
+
+#' Generate an LMM simulation closure for a trait
 #'
 #' @description
-#' S
+#' Given the parameters of the LMM return a function to
+#' generate independent samples from a given genotype matrix.
 #'
 #' @export
 #'
@@ -164,31 +175,168 @@ fit <- function(trait, genotypes)
 #'      for generating samples from genotypes under the 
 #'      rrBLUP LMM
 #
-simulator <- function(intercept, u, sd_error, int_se=NULL, u_se=NULL)
+gen_trait_sim_closure <- function(intercept, u, sd_error,
+                                  intercept_se=NULL, u_se=NULL)
 {
 
-    get_n_samples <- function(dims)
-        return(ifelse(is.null(dims), 1, dims[1]))
+    q_markers <- length(u)
 
-    if(is.null(u_se))
+    if(is.null(u_se) && is.null(intercept_se))
     {
-        sample_generator <- function(genotypes)
+        # simulate:
+        #   random error
+
+        n_samples <- get_n_samples(dim(genotypes))
+
+        return(function(genotypes)
         {
             return(predict_lmm(genotypes, u, intercept)
-                 + stats::rnorm(get_n_samples(dim(genotypes)), 0, sd=sd_error))
-        }
-    } else if(length(u) == length(u_se)) {
+                 + stats::rnorm(n_samples,
+                                0,
+                                sd=sd_error))
+        })
 
-        sample_generator <- function(genotypes)
+    } else if (is.null(u_se) && length(intercept_se) == 1) {
+
+        # simulate:
+        #   random error
+        #   uncertainty in intercept inference
+
+        return(function(genotypes)
         {
+            n_samples <- get_n_samples(dim(genotypes))
+
             return(predict_lmm(genotypes,
-                           stats::rnorm(length(u), mean=u, sd=u_se),
+                               u,
+                               stats::rnorm(1, intercept,
+                                            sd=intercept_se))
+                 + stats::rnorm(n_samples,
+                                0,
+                                sd=sd_error))
+        })
+
+    } else if(length(u) == length(u_se) && is.null(intercept_se)) {
+
+        # simulate:
+        #   random error
+        #   uncertainty in BLUPs
+
+        return(function(genotypes)
+        {
+            n_samples <- get_n_samples(dim(genotypes))
+
+            # TODO check whether this is correct
+            #
+            # genetic effects.  I think that under an assumption of
+            # independence we need to sample the BLUPs independently,
+            # for each sample
+            trait <- apply(genotypes,
+                           1,
+                           predict_lmm,
+                           stats::rnorm(q_markers, u, sd=u_se),
                            intercept)
-                + stats::rnorm(get_n_samples(dim(genotypes)), 0, sd=sd_error))
-        }
 
-    } else
-        stop("Wrong input")
+            # return the genetic effects plus error
+            return(trait
+                + stats::rnorm(get_n_samples(dim(genotypes)),
+                               0,
+                               sd=sd_error))
+        })
 
-    return(sample_generator)
+    } else if (lenght(u) == length(u_se)
+               && length(intercept_se) == 1) {
+
+        # simulate:
+        #   random error
+        #   uncertainty in BLUPs
+
+        return(function(genotypes)
+        {
+            n_samples <- get_n_samples(dim(genotypes))
+
+            # TODO check whether this is correct
+            #
+            # genetic effects.  I think that under an assumption of
+            # independence we need to sample the BLUPs independently,
+            # for each sample.  Sample unique intercepts per sample
+            trait <- apply(genotypes,
+                           1,
+                           predict_lmm,
+                           stats::rnorm(q_markers, u, sd=u_se),
+                           stats::rnorm(n_samples, 
+                                        intercept,
+                                        sd=intercept_se))
+
+            # return the genetic effects plus error
+            return(trait
+                + stats::rnorm(get_n_samples(dim(genotypes)),
+                               0,
+                               sd=sd_error))
+        })
+    }
+
+    # if the inputs do not match the expected arguments, raise error
+    stop("Wrong input")
+}
+
+
+#' Generate an LMM simulation closure from the r_sq
+#'
+#' @export
+#'
+#' @param r_sq (float [0,1))
+#'      the coefficient of determination, a value 0 <= r_sq <  1
+#'      exclusive, between genetics and the simulated trait
+#'      measurements under the linear mixed model
+#' @param genotypes ((n_samples, q_markers) matrix)
+#'      genotype values
+#' @param var_u (float (>0))
+#'      the variance of the random effects
+#' @param intercept (float)
+#'      the intercept of the model
+#'
+#' @return (function)
+#
+gen_sim_closure_r_sq <- function(r_sq, genotypes,
+                                 var_u=1, intercept=0)
+{
+
+    if (r_sq >= 1 || r_sq < 0)
+        stop("r^2 must be on interval [0,1)")
+
+    if (var_u < 0 || (var_u == 0 && r_sq != 0))
+        stop("var_u must be > 0, unless r_sq = 0")
+
+    if (!is.matrix(genotypes) || !is_genotype(genotypes))
+        stop("genotypes must be a valid genotype matrix")
+
+    n_samples <- dim(genotypes)[1]
+    q_markers <- dim(genotypes)[2]
+
+    if (r_sq == 0)
+    {
+        # When the r_sq is 0, then the variance of the trait
+        # that is attributed to genetics is zero, therefore
+        # the variance of the random effects is zero.  I set
+        # all values u to zero.  In this case I use a default
+        # error variance of 1
+        return(gen_trait_sim_closure(intercept,
+                                     rep(0, q_markers),
+                                     1))
+    }
+
+    # The equation for var_error is derived from the definition
+    # of r_sq and the statistical properties of the LMM, see
+    # description for details.
+    u <- matrix(stats::rnorm(q_markers, 0, sqrt(var_u)),
+                nrow=q_markers,
+                ncol=1)
+
+    omega <- genotypes %*% u
+    omega <- drop(t(omega) %*% omega) / n_samples
+    var_error <- omega * (1 - r_sq) / r_sq
+
+    return(gen_trait_sim_closure(intercept,
+                         u,
+                         sqrt(var_error)))
 }
