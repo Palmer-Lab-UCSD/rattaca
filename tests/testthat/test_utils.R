@@ -1,4 +1,10 @@
-
+# test utils.R functions
+#
+# Author: Robert Vogel
+# Date: 2023-08-24
+#
+# Contributors:
+#
 
 test_that("is_genotype return correct boolean vals",
           {
@@ -124,3 +130,52 @@ test_that("argument: invalid input",
 #               }
 #           }
 # )
+# 
+#
+
+
+test_that("load_and_prepare_plink_data: correct imputed data",
+          {
+              plink_fnames = file.path("data","geno")
+              out <- rattaca::load_and_prepare_plink_data(plink_fnames)
+
+              testthat::expect_true(is.matrix(out))
+              testthat::expect_false(any(is.na(out)))
+              testthat::expect_true(all(out >= -1))
+              testthat::expect_true(all(out <= 1))
+          }
+)
+
+
+test_that("load_and_prepare_plink_data: file does not exists",
+          {
+              plink_fnames = file.path("data","genotypes")
+
+              testthat::expect_error(
+                   rattaca::load_and_prepare_plink_data(
+                                        file.path("data","genotypes")))
+          }
+)
+
+
+test_that("load_and_prepare_trait_data: correct data",
+          {
+              trait_name <- "trait"
+              sample_id <- "rfid"
+              trait_file_name <- file.path("data", "trait.csv")
+
+              raw_table <- read.csv(trait_file_name)
+              raw_table <- raw_table[!is.na(raw_table[,trait_name]),]
+
+              out <- rattaca::load_and_prepare_trait_data(
+                                   trait_file_name,
+                                   sample_id,
+                                   trait_name)
+
+              testthat::expect_true(is.data.frame(out))
+              testthat::expect_identical(colnames(out), trait_name)
+              testthat::expect_false(any(is.na(out[, trait_name])))
+              testthat::expect_identical(rownames(out),
+                                         raw_table[, sample_id])
+          }
+)
