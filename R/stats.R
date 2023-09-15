@@ -25,18 +25,25 @@
 #
 power_analysis <- function(geno_low, geno_high, sim,
                   significance_level=0.05,
-                  m_power_reps=100)
+                  m_power_reps=100) #stat_test="ttest")
 {
     num_reject_null <- 0
+
+    #if (test == "ttest")
+    #    compute_stat <- stats::t.test
+    # else if (test == "lmm")
+    #     
+    # else
+    #     stop(paste("Provided stat_test is not one of"
+    #                "the supported - ttest, lmm - tests"))
 
     for (i in seq(m_power_reps))
     {
         tmp_high <- sim(geno_high)
         tmp_low <- sim(geno_low)
 
-        out <- stats::wilcox.test(tmp_high, y=tmp_low,
-                                  alternative=c("greater"),
-                                  paired=FALSE, mu=0)
+        out <- stats::t.test(tmp_high, tmp_low,
+                             alternative="greater")
 
         if (out$p.value < significance_level)
             num_reject_null <- num_reject_null + 1
@@ -60,7 +67,10 @@ compute_r_sq <- function(true_vals, predictions)
     if (length(true_vals) != length(predictions))
         stop("Number of true_vals and predictions must be equal")
 
-    return(1 - stats::var(true_vals - predictions) / stats::var(true_vals))
+    ssr <- sum((true_vals - predictions)^2)
+    stot <- sum((true_vals - mean(true_vals))^2)
+
+    return(1 - ssr /stot)
 }
 
 

@@ -27,7 +27,8 @@
 predict_lmm <- function(genotypes, u, intercept)
 {
     if (!is.matrix(genotypes))
-        genotypes <- as.matrix(genotypes)
+        genotypes <- matrix(genotypes,nrow=1,
+                            ncol=length(genotypes))
 
     if (!is.matrix(u))
         u <- matrix(u, nrow=length(u), ncol=1)
@@ -186,10 +187,11 @@ gen_trait_sim_closure <- function(intercept, u, sd_error,
         # simulate:
         #   random error
 
-        n_samples <- get_n_samples(dim(genotypes))
-
         return(function(genotypes)
         {
+
+            n_samples <- get_n_samples(dim(genotypes))
+
             return(predict_lmm(genotypes, u, intercept)
                  + stats::rnorm(n_samples,
                                 0,
@@ -243,7 +245,7 @@ gen_trait_sim_closure <- function(intercept, u, sd_error,
                                sd=sd_error))
         })
 
-    } else if (lenght(u) == length(u_se)
+    } else if (length(u) == length(u_se)
                && length(intercept_se) == 1) {
 
         # simulate:
@@ -263,9 +265,7 @@ gen_trait_sim_closure <- function(intercept, u, sd_error,
                            1,
                            predict_lmm,
                            stats::rnorm(q_markers, u, sd=u_se),
-                           stats::rnorm(n_samples, 
-                                        intercept,
-                                        sd=intercept_se))
+                           stats::rnorm(1, intercept, sd=intercept_se))
 
             # return the genetic effects plus error
             return(trait

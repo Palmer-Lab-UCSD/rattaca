@@ -4,47 +4,25 @@
 \alias{gen_sim_closure_r_sq}
 \title{Generate an LMM simulation closure from the r_sq}
 \usage{
-gen_sim_closure_r_sq(
-  r_sq,
-  n_samples,
-  q_markers,
-  sum_sq_genotypes = NULL,
-  var_u = 1,
-  intercept = 0
-)
+gen_sim_closure_r_sq(r_sq, genotypes, var_u = 1, intercept = 0)
 }
 \arguments{
-\item{r_sq}{(float (0,1))
-the coefficient of determination, a value between 0 and 1
+\item{r_sq}{(float [0,1))
+the coefficient of determination, a value 0 <= r_sq <  1
 exclusive, between genetics and the simulated trait
 measurements under the linear mixed model}
 
-\item{n_samples}{(integer)
-the number of samples in the simulated data set}
-
-\item{q_markers}{(integer)
-the number of marker measurements}
+\item{genotypes}{((n_samples, q_markers) matrix)
+genotype values}
 
 \item{var_u}{(float (>0))
 the variance of the random effects}
+
+\item{intercept}{(float)
+the intercept of the model}
 }
 \value{
-(list)
-\itemize{
-     \item{$u}
-     {
-         ((q markers,) vector) simulated random effects
-     }
-     \item{$genotypes}
-     {
-         ((n_samples, q_markers) matrix) of simulated genotypes,
-             assume samples are i.i.d and no linkage disequilibrium
-     }
-     \item{$trait}
-     {
-         ((n_samples,) ) the simulated trait values
-     }
-}
+(function)
 }
 \description{
 Generate an LMM simulation closure from the r_sq
