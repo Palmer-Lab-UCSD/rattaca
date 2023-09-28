@@ -48,7 +48,7 @@ main <- function(args)
     #       an array, data frame, matrix?
     rat_ids <- intersect(rownames(trait), rownames(genotypes))
     genotypes <- genotypes[rat_ids,]
-    trait <- trait[rat_ids,]
+    trait <- trait[rat_ids,,drop=FALSE]
     
 
     print(paste(Sys.time(),
