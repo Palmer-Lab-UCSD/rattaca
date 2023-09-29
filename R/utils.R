@@ -109,10 +109,8 @@ argument <- function(default_val=NULL,
 {
 
     if (is.null(default_val) || storage.mode(default_val) == type)
-    {
         return(list(val=default_val, help=help,
                     type=type, required=required))
-    }
 
     stop("Default value doesn't match specified type")
 }

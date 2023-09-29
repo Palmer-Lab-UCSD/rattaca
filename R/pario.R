@@ -56,7 +56,7 @@ read_pars <- function(filename)
                               proto, perl=TRUE)
     while(!any(is.na(line)))
     {
-        meta[[line$key]] <- line$val
+        meta[[line$key]] <- type.convert(line$val, as.is=TRUE)
 
         raw_line <- readLines(con=fconn, n=1)
 
