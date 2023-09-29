@@ -12,8 +12,8 @@
 library(rattaca)
 
 
-VERSION = "1.0.3"
-LOG_DELIMITER = " : "
+VERSION <- "1.0.3"
+LOG_DELIMITER <- " : "
 
 
 # Predict trait values under LMM model and rrBLUP pkg.
