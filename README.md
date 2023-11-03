@@ -1,5 +1,7 @@
 # RATTACA :rat:
 
+:construction: Under Construction :construction:
+
 The RATTACA method aims at predicting rat
 traits from low coverage sequencing measurements.
 Using these trait predictions, animals with predicted
@@ -29,22 +31,25 @@ First, simply clone the repository.  Assuming that the cloned
 repository is in the current working directory
 
 ```bash
-$ R CMD INSTALL [-l library_path] rattaca
+R CMD INSTALL [-l library_path] rattaca
 ```
 
-Or if you prefer to install from R, you'll need to build the package
+Or if you prefer to install from R, you'll need to build the package.  This
+can be done from the command line by:
 
 ```bash
-$ R CMD build rattaca
+R CMD build rattaca
 ```
 
 which will generate a tar ball `rattaca-<version_number>.tar.gz` in the
-current working directory
+current working directory.  Then start `R` and in the `R` command line
 
-```bash
-$ R
-> install.packages('rattaca-<version_number>.tar.gz', repos=NULL)
+```R
+install.packages('rattaca-<version_number>.tar.gz', repos=NULL)
 ```
+
+where we have set `repos` to `NULL` as we are installing from a
+local package.
 
 
 ### Download a tagged version
@@ -54,9 +59,55 @@ Choose a tagged version, and click on the compressed source code link for
 `.tar.gz`.  Given that this downloaded in the `Downloads` folder
 
 ```bash
-$ cd ~/Downloads
-$ R CMD INSTALL [-l library_path] rattaca-[version number].tar.gz
+cd ~/Downloads
+R CMD INSTALL [-l library_path] rattaca-<version_number>.tar.gz
 ```
+
+## Package Features
+
+### Fitting model to data
+
+We'll need:
+
+* plink genotype files bed, bim, and fam. e.g. genotypes.{bed,bim,fam}
+* table of trait values in csv format, *Note* a header is required. e.g.
+
+rfid | project_id | mass | bmi | color |
+-----------------------------------
+00383402 | new_proj | 423.21 | 24. | brown |
+03324225 | diff_proj | 232.35 | 25. | brown|
+
+
+Using the `R` command line we can read in the data by
+
+```R
+library(rattaca)
+
+genotypes <- rattaca::load_and_prepare_plink_data("genotypes")
+trait_data <- rattaca::load_and_prepare_trait_data("traits.csv",
+    "rfid", "mass")
+``` 
+
+where when loading the trait data we referenced the column with
+animal id's and that of the measurements we are interested in.
+
+Next we need to make sure that there exists a genotype and
+trait measurement for each sample.
+
+```R
+rat_ids <- intersect(rownames(trait_data), rownames(genotypes))
+genotypes <- genotypes[rat_ids,]
+trait_data <- trait_data[rat_ids,,drop=FALSE]
+
+out_pars <- rattaca::fit(trait_data[,"mass"],
+                         genotypes)
+```
+
+Note, that fitting is very expensive for large amount of SNPs and
+animals.  If you have more than 1,000 SNPs, you'll want to submit
+a job to HPC.
+
+
 
 ## Example of using RATTACA Scripts
 
@@ -85,7 +136,6 @@ $ Rscript rat_fit.R \
 
 
 
-## Package Feature Example
 
 
 ## Contribute
