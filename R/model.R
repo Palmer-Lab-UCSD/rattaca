@@ -340,3 +340,71 @@ gen_sim_closure_r_sq <- function(r_sq, genotypes,
                          u,
                          sqrt(var_error)))
 }
+
+
+#' Re-fit a trained model onto a test dataset with known
+#' trait values and assess model performance
+#'
+#' @export
+#'
+#' @param phenotypes (numeric)
+#'      A named vector of observed phenotype values for a single trait
+#' @param genotypes (matrix)
+#'      A matrix of m samples by n SNPs, with samples in the same
+#'      order as phenotypes
+#' @param u (numeric)
+#'      A vector of marker effects from a fitted model
+#' @param intercept (numeric)
+#'      The intercept term from a fitted model
+#' 
+#' @return A list of (1) trait observations from the test set,
+#'      (2) trait predictions for the test set, and (3,4,5)
+#'      model performance metrics on the test set  
+#
+# function to re-fit a trained model onto a test dataset
+refit_validate <- function(phenotypes,
+                           genotypes, 
+                           u,         
+                           intercept) 
+{
+    
+    # rename input variables to avoid naming conflicts with predict_lmm()
+    pheno <- phenotypes
+    geno <- genotypes
+    fitted_u <- u
+    fitted_beta <- intercept
+    
+    if (!is.matrix(geno))
+        geno <- matrix(geno,nrow=1,
+                            ncol=length(geno))
+
+    if (!is.matrix(fitted_u))
+        fitted_u <- matrix(fitted_u, nrow=length(fitted_u), ncol=1)
+
+
+    if (!is.vector(fitted_beta))
+        fitted_beta <- as.vector(fitted_beta)
+    
+    if (length(fitted_beta) != 1 &&
+        length(fitted_beta) != dim(geno)[1])
+        stop("Intercept should have length 1 or n_samples")
+
+    if (dim(geno)[2] != dim(fitted_u)[1])
+        stop("Matrix and vector dimensions are incompatible")
+    
+    if (!identical(rownames(geno),names(pheno)))
+        stop("Genotype and phenotype data are not properly aligned")
+                   
+
+    # predict on the test set using u, beta from the trained model
+    test_pred <- predict_lmm(geno, fitted_u, fitted_beta)
+ 
+    # goodness-of-fit measures
+    rho <- cor(test_pred, pheno, method='spearman')
+    r <- cor(test_pred, pheno, method='pearson')
+    r_sq <- compute_r_sq(test_pred, pheno)
+    
+    out <- list(obs = pheno, pred = test_pred, r_sq = r_sq, pearson_corr = r, spearman_corr = rho)
+    return(out)
+
+}
