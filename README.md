@@ -144,40 +144,92 @@ time.
 
 
 ### Loading genotypes and trait data from R
+
+Suppose that our current working direcotry contained a directory
+`data` for which the plink and trait data files are located,
+
+```bash
+-data/
+    |- genotype.bed
+    |- genotype.bim
+    |- genotype.fam
+    |- traits.csv
+```
+
+Then to load the genotypes and trait data for `mass` where
+`rfid` is the sample id column,
+
 ```R
-genotypes <- rattaca::load_and_prepare_plink_data("genotypes")
-trait_data <- rattaca::load_and_prepare_trait_data("traits.csv",
-    "rfid", "mass")
+genotypes <- rattaca::load_and_prepare_plink_data("data/genotypes")
+trait <- rattaca::load_and_prepare_trait_data("data/traits.csv",
+                "rfid", "mass")
 ```
 
 
-## Example of using RATTACA Scripts
+## RATTACA Scripts
 
 `rattaca` scripts can be found in the `inst` directory of this repository.
 
 
-### Fitting marker BLUPs
+### Example: fitting marker BLUPs
 
 To fit the model to data, you'll need to have on hand:
 
-* path to plink bed, bim, and fam files, e.g. `data/genotypes.{bed,bim,fam}`
-* path to trait file
-    - csv table, rows being animals and columns being trait values
-    - headers are required
-    - first column should be rfid
-* name of trait 
+* genotype files
+* trait measurements as csv
+* `rat_fit.R` script
+
+Note that the animal identifies in the genotype
+files must match that of the trait measurements.  Let us
+assume that the current working directory
 
 
 ```bash
-$ Rscript rat_fit.R \
---plink_genotypes_prefix PATH_TO_GENE\
---
+- rat_fit.R
+- data/
+    |- genotype.bed
+    |- genotype.bim
+    |- genotype.fam
+    |- traits.csv
 ```
 
-### Power analysis
+Then to run the script
+
+```bash
+$ Rscript rat_fit.R \
+--plink_genotypes_prefix 'data/genotype' \
+--trait_file 'data/traits.csv' \
+--trait_rat_id_colname 'rfid' \
+--trait 'mass' \
+--out_dir 'results'
+```
+
+which will print the results to file 'results/mass.bpar'.
+
+### Example: performing power analysis
 
 
+## Output specification
 
+The `.bpar` file contains records separated by line.  Records
+come in three flavors and are distinguishable by line prefex:
+
+| Prefix | Description |
+| -------| ----------- |
+| `##`   | Meta data containing key value pairs delimited by `=`. |
+| `#`    | Header, defines the values for each variant record,
+    comma delimited. |
+| No prefix | Variant record, comma delimited. |
+
+The header includes
+
+| Column Name | Description |
+| ----------- | ----------- |
+| var_id | As specified in |
+| random_effect | BLUP of the random effect for variant produced
+by `rrBLUP:mixed.solve` |
+| random_effect_se | Standard error of BLUP produced by
+`rrBLUP::mixed.solve` |
 
 
 ## Contribute
