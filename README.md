@@ -124,18 +124,18 @@ ls(out_pars)
 
 where the parameter definitions are as follows:
 
-parameter | description |
-----------
-beta        |   Fixed effect size, i.e. the intercept term
-beta.SE     |   Standard error of intercept
-LL          |   log-likelihood of fit
-pearson_corr    | Pearson correlation between predictions and training data 
-r_sq        |   Coefficient of determination, R^2, between predictions and training data
-spearman_corr   | Spearman correlation between predictions and training data
-u   |   BLUP for each marker random effect
-u.SE | Standard error BLUP for each marker random effect
-Ve  | Variance of error term
-Vu  | Variance of random effects
+| parameter | description |
+| --------- | ------------|
+| beta        |   Fixed effect size, i.e. the intercept term |
+| beta.SE     |   Standard error of intercept |
+| LL          |   log-likelihood of fit |
+| pearson_corr    | Pearson correlation between predictions and training data |
+| r_sq        |   Coefficient of determination, R^2, between predictions and training data |
+| spearman_corr   | Spearman correlation between predictions and training data |
+| u   |   BLUP for each marker random effect |
+| u.SE | Standard error BLUP for each marker random effect |
+| Ve  | Variance of error term |
+| Vu  | Variance of random effects |
 
 
 Note, that fitting is computationally expensive for large amounts
