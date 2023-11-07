@@ -204,7 +204,7 @@ $ Rscript rat_fit.R \
 --out_dir 'results'
 ```
 
-which will print the results to file 'results/mass.bpar'.
+which will print the results to file `results/mass.bpar`.
 
 ### Example: performing power analysis
 
@@ -217,8 +217,7 @@ come in three flavors and are distinguishable by line prefex:
 | Prefix | Description |
 | -------| ----------- |
 | `##`   | Meta data containing key value pairs delimited by `=`. |
-| `#`    | Header, defines the values for each variant record,
-    comma delimited. |
+| `#`    | Header, defines the values for each variant record, comma delimited. |
 | No prefix | Variant record, comma delimited. |
 
 The header includes
@@ -226,10 +225,8 @@ The header includes
 | Column Name | Description |
 | ----------- | ----------- |
 | var_id | As specified in |
-| random_effect | BLUP of the random effect for variant produced
-by `rrBLUP:mixed.solve` |
-| random_effect_se | Standard error of BLUP produced by
-`rrBLUP::mixed.solve` |
+| random_effect | BLUP of the random effect for variant produced by `rrBLUP:mixed.solve` |
+| random_effect_se | Standard error of BLUP produced by `rrBLUP::mixed.solve` |
 
 
 ## Contribute
