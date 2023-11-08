@@ -425,3 +425,31 @@ make_plink_dataset <- function(input_genotypes,
     
     return(out)
 }
+
+
+#' Identify the set of SNP variants common to both the training
+#' and test datasets
+#'
+#' @export
+#'
+#' @param train_genotypes (string)
+#'      The file path/prefix for the training Plink dataset.
+#' 
+#' @param test_genotypes (string)
+#'      The file path/prefix for the test Plink dataset.
+#'
+#' @return A vector of all SNP variants found in both datasets.
+#
+get_common_snpset <- function(train_genotypes, test_genotypes) {
+
+    # read in snp sets
+    all_train_snps <- genio::read_bim(paste0(train_genotypes, '.bim'))
+    all_train_snps <- all_train_snps$id
+    all_test_snps <- genio::read_bim(paste0(test_genotypes, '.bim'))
+    all_test_snps <- all_test_snps$id
+    
+    # save all snps common to train/test sets from which to sample a common set of snps
+    all_snps <- intersect(all_test_snps, all_train_snps)
+    
+    return(all_snps)
+}
