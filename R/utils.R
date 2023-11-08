@@ -530,3 +530,63 @@ sample_snps <- function(input_snps,
 
     return(snp_list)          
 }
+
+
+#' Produce one or multiple sets of SNPs randomly sampled from an input
+#' SNP set read in from Plink files, then use the new sample(s) to produce
+#' a new Plink dataset(s)
+#'
+#' @export
+#'
+#' @param input_genotypes (character)
+#'      The path/prefix of Plink files from which to sample SNPs
+#' 
+#' @param snp_directory (character)
+#'      The directory in which to save the file(s) listing sampled SNPs
+#'
+#' @param output_dir (character)
+#'      The output directory in which to save the new Plink dataset(s)  
+#'
+#' @param n_samples (int)
+#'      (default 1) The number of random samples and Plink datasets 
+#'      to produce
+#'
+#' @param keep_files (bool)
+#'      (default TRUE) Whether or not to keep Plink genotype files.
+#'      Use FALSE if only SNP files are desired
+#'
+#' @return A list of length n_samples of genotype datasets as produced
+#'          by make_plink_dataset()
+#
+sample_snps_from_plink_files <- function(input_genotypes,   # genotype data in plink format: base filename
+                                         snp_directory,     # directory of 1 or more txt files listing sampled SNPs
+                                         output_dir,        # directory to hold the new datasets
+                                         n_samples = 1,     # number of SNP samples to extract & datasets to produce
+                                         keep_files = TRUE) # T: keep plink files; F: delete plink files
+{
+    input_filename <- basename(input_genotypes)
+    all_samples <- list.files(snp_directory, full.names=T)
+    geno_datasets <- list()
+    
+    for (i in 1:n_samples) {
+        
+        snp_sample <- all_samples[i]
+        
+        geno_datasets[[i]] <- make_plink_dataset(
+            input_genotypes = input_genotypes,
+            output_dir = output_dir,             # directory for the new dataset
+            outfile_prefix = paste0(input_filename, '_', i),    # base filename for the new dataset
+            snps_to_keep = snp_sample,    # text file of snps to keep from the input dataset
+            return_data=TRUE)       # T: return the dataset in R; F: just produce the data files
+
+        # delete unwanted files
+        if (!keep_files) {
+            
+            system_call <- paste0('rm', ' ', geno_datasets[[i]]$geno_file, '.*')
+            system(system_call)
+            print(paste('System call:', system_call))
+        }
+    }
+    
+    return(geno_datasets)
+}
