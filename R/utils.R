@@ -265,3 +265,163 @@ get_phenotyped_ids <- function(phenotype_data, id_column, trait_column = NULL, o
         
     }
 }
+
+
+
+#' Modify a Plink genotype dataset to produce a new Plink dataset
+#' of system files, with option to read data into R
+#'
+#' @export
+#'
+#' @param input_genotypes (string)
+#'      prefix of plink bim, bed, and fam files that will be
+#'      loaded and modified
+#' @param output_dir (string)
+#'      Output directory in which to save the new Plink dataset
+#' @param outfile_prefix (string) 
+#'      (default '') The base file name for new Plink files.
+#'      This will be appended with modifications to the original 
+#'      dataset.
+#' @param samples_to_keep (string) 
+#'      (default NULL) If subsetting samples from the original
+#'      dataset, the path to the file listing all samples desired
+#'      for the new dataset. Must be in Plink .fam format, with 
+#'      one row per sample and two columns: one column of family IDs 
+#'      (or zeros), and one column of individual IDs, as produced
+#'      by get_phenotyped_ids(). Using this option calls the Plink
+#'      option '--keep'.
+#' @param snps_to_keep (string) 
+#'      (default NULL) If subsetting SNP variants from the original
+#'      dataset, the path to the file listing all SNP variants desired
+#'      for the new dataset. Must be formatted with one column of 
+#'      variant IDs, one row per variant, as produced by either 
+#'      sample_snps() or sample_snps_from_plink_files(). Using this 
+#'      option calls the Plink option '--extract'.
+#' @param maf_cutoff (double) 
+#'      (default NULL) The desired minor allele frequency cutoff. All 
+#'      variants with allele frequency in the original dataset below 
+#'      the provided threshold will be excluded from the new dataset.
+#'      Using this option calls the Plink option '--maf'.
+#' @param missing_cutoff (double) 
+#'      (default NULL) The desired missing call rate cutoff. All variants 
+#'      with missing call rates exceeding the provided threshold in the 
+#'      original dataset will be excluded from the new dataset. Using 
+#'      this option calls the Plink option '--geno'.
+#' @param hwe_cutoff (double) 
+#'      (default NULL) The desired cutoff for Hardy-Weinberg exact test 
+#'      P-values. All variants in the original dataset whose P-values 
+#'      following a Hardy-Weinberg equilibrium exact test fall below the 
+#'      provided threshold will be excluded from the new dataset. Using
+#'      this option calls the Plink option '--hwe'.
+#' @param ld_prune (bool) 
+#'      (default FALSE) Whether or not to prune variants from the original
+#'      dataset based on linkage disequilibrium with other variants. Using
+#'      this option calls the Plink option '--indep-pairwise'.
+#' @param ld_r2 (double) 
+#'      (default NULL) If LD-pruning, The desired pairwise r^2 threshold.
+#'      For all variant pairs within a desired window size, if the r^2
+#'      of the pairwise correlation between variant allele counts exceeds
+#'      this threshold, only one variant will be kept in the new dataset.
+#' @param ld_window_size (integer) 
+#'      (default NULL) If LD-pruning, the desired window size (in variant 
+#'      count) in which to estimate pairwise linkage disequilibrium.
+#' @param ld_step_size (integer) 
+#'      (default NULL) If LD-pruning, the desired step size (in variant 
+#'      count) by which the pruning window will slide before estimating 
+#'      pairwise LD again.
+#' @param return_data (bool) 
+#'      (default TRUE) Whether or not to return the new dataset in the R 
+#'      environment. If TRUE, returns a list containing (1) the file 
+#'      path to the new dataset and (2) the new genotype matrix. If 
+#'      FALSE, returns only the file directory. This option is preferable 
+#'      when producing large datasets that become computationally intractable 
+#'      to process within R.
+#'
+#' @return A list containing (1) the file path to the new dataset and 
+#'      (2) the new genotype matrix.
+#
+make_plink_dataset <- function(input_genotypes,       
+                               output_dir,            
+                               outfile_prefix = '',   
+                               samples_to_keep = NULL,
+                               snps_to_keep = NULL,   
+                               maf_cutoff = NULL,     
+                               missing_cutoff = NULL, 
+                               hwe_cutoff = NULL,     
+                               ld_prune = FALSE,      
+                               ld_r2 = NULL,          
+                               ld_window_size = NULL, 
+                               ld_step_size = NULL,   
+                               return_data=TRUE)      
+{
+    
+    # common arguments
+    args <- c('-bfile', input_genotypes, '-make-bed')
+    
+    # set extra arguments based on user input
+    
+    # samples to keep
+    if (!is.null(samples_to_keep)) {
+        n_samples <- length(readLines(samples_to_keep))
+        args <- c(args, '--keep', samples_to_keep)
+        outfile_prefix <- paste0(outfile_prefix, '_n', n_samples)
+    }
+    # minor allele frequency cutoff
+    if (!is.null(maf_cutoff)) {
+        args <- c(args, '--maf', maf_cutoff)
+        outfile_prefix <- paste0(outfile_prefix, '_maf', maf_cutoff)
+    }
+    
+    # genotype missingness cutoff
+    if (!is.null(missing_cutoff)) {
+        args <- c(args, '--geno', missing_cutoff)
+        outfile_prefix <- paste0(outfile_prefix, '_missing', missing_cutoff)
+    }
+    
+    # HWE cutoff
+    if (!is.null(hwe_cutoff)) {
+        args <- c(args, '--hwe', hwe_cutoff)
+        hwe_pval <- -log10(hwe_cutoff)
+        outfile_prefix <- paste0(outfile_prefix, '_hwe', hwe_pval)
+    }
+
+    # SNP sampling
+    if (!is.null(snps_to_keep)) {
+        args <- c(args, '--extract', snps_to_keep)
+        snp_n <- length(readLines(snps_to_keep)) / 1000
+        outfile_prefix <- paste0(outfile_prefix, '_', snp_n, 'k_snps')
+    }
+
+    # LD pruning
+    if (ld_prune) {
+        
+        if( is.null(ld_r2) | is.null(ld_window_size) | is.null(ld_step_size) ) {
+            stop('Please provide LD-pruning parameters: r^2, window size, and step size')
+        }
+        
+        args <- c(args, '--indep-pairwise', ld_window_size, ld_step_size, ld_r2)
+        outfile_prefix <- paste(outfile_prefix, 'ldprune', ld_r2, ld_window_size, ld_step_size, sep='_')
+    }
+    
+    # set plink arguments
+    plink_file_name <- paste0(output_dir, '/', outfile_prefix)
+    args <- c(args, '--out', plink_file_name)
+
+    # print the plink call to the user
+    print(paste('Plink call:', plink2, paste(args, collapse=' ')))
+
+    # run plink
+    system2(plink2, args)
+    
+    if (return_data){
+    
+        # read in plink genotypes and replace NA values
+        plink_dat <- load_and_prepare_plink_data(plink_file_name)
+        out <- list(geno_file = plink_file_name, geno = plink_dat)
+
+    } else {
+        out <- list(geno_file = plink_file_name, geno = NULL)
+    }
+    
+    return(out)
+}
