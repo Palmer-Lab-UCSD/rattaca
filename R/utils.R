@@ -590,3 +590,41 @@ sample_snps_from_plink_files <- function(input_genotypes,   # genotype data in p
     
     return(geno_datasets)
 }
+
+
+#' Align genotype and phenotype datasets for prediction. Keeps only
+#' samples that are shared between datasets, maintaining the same order
+#' of sample IDs in both
+#'
+#' @export
+#'
+#' @param genotypes (list)
+#'      A genotype dataset as produced by make_plink_dataset() or
+#'      sample_snps_from_plink_files(): a list with elements $geno_file
+#'      (the path/prefix to the Plink dataset) and $geno (a genotype matrix
+#'      of n samples x q variants)
+#' 
+#' @param phenotypes (numeric)
+#'      A named numeric vector of phenotype measurements
+#'
+#' @return A list of (1) the trait name, (2) all sample IDs shared between
+#'      datasets, (3) the path/prefix for the Plink dataset used in
+#'      alignment, (4) the aligned genotype matrix, and (5) the aligned
+#'      phenotype data
+#
+align_data <- function(genotypes,  # matrix: n samples x q variants
+                       phenotypes)#, # df w/ row names: samples x 1 trait, output from load_and_prepare_trait_data()
+{
+    
+    geno_file <- genotypes$geno_file
+    geno <- genotypes$geno
+        
+    # align genotype and phenotype data for prediction
+    rat_ids <- intersect(rownames(geno), rownames(phenotypes))
+    geno <- geno[rat_ids,]
+    trait_dat <- phenotypes[rat_ids,]
+    names(trait_dat) <- rat_ids
+
+    out <- list(trait = trait, ids = rat_ids, geno_file = geno_file, geno = geno, pheno = trait_dat)
+    return(out)
+} 
