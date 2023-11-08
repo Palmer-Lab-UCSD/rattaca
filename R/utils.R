@@ -453,3 +453,80 @@ get_common_snpset <- function(train_genotypes, test_genotypes) {
     
     return(all_snps)
 }
+
+
+#' Produce train and test datasets with SNPs randomly sampled
+#' from an input SNP set
+#'
+#' @export
+#'
+#' @param input_snps (character)
+#'      A vector of SNP variant names from which to sample. Names must be
+#'      in format 'chromosome:position', e.g. 1:2456462
+#' 
+#' @param keep (int)
+#'      (default 50000) The number of SNPs to keep
+#'
+#' @param iterations (int)
+#'      (default 1) The number of random samples to produce      
+#'
+#' @param save_file (bool)
+#'      (default FALSE) Whether or not to save the SNP sample(s) to file(s)
+#'
+#' @param output_dir (character)
+#'      The output directory in which to save the SNP sample(s)
+#'
+#' @return A vector of all SNP variants found in both datasets.
+#
+sample_snps <- function(input_snps,
+                        keep = 50000,
+                        iterations = 1,
+                        save_file = FALSE,
+                        output_dir = NULL){
+    
+    # ensure inputs/outputs are provided if files are desired
+    if (save_file) {
+        if (is.null(output_dir)){
+            stop('Include an output directory in which to save your file(s)')
+        }
+    }
+    
+    # list to store SNP samples
+    snp_list <- list()
+    
+    n_k <- paste0(keep/1000,'k')
+    max_i_figs <- nchar(iterations)
+
+    for (i in 1:iterations){
+                
+        # sample SNPs, save SNPs to a dataframe
+        use_snps <- sample(input_snps, keep)
+        use_snps <- strsplit(use_snps,':')
+        chr <- sapply(use_snps, function(x) x[1])
+        pos <- sapply(use_snps, function(x) x[2])
+        snp_df <- data.frame(cbind(chr,pos))
+        snp_df$pos <- as.numeric(snp_df$pos)
+        extra_chrs <- c('MT', 'X', 'Y')
+        snp_num <- snp_df[!snp_df$chr %in% extra_chrs,]
+        snp_char <- snp_df[snp_df$chr %in% extra_chrs,]
+        snp_num$chr <- as.numeric(snp_num$chr)
+        snp_char$chr <- as.character(snp_char$chr)
+        snp_num <- snp_num[order(snp_num$chr, snp_num$pos),]
+        snp_char <- snp_char[order(snp_char$chr, snp_char$pos),]
+        snp_df <- rbind(snp_num, snp_char)
+        use_snps <- paste0(snp_df$chr, ':', snp_df$pos)
+
+        snp_list[[i]] <- use_snps
+    
+        if (save_file){
+            
+            i_figs <- nchar(i)
+            rep_0s <- paste0(rep(0, max_i_figs - i_figs),collapse='')
+            write.table(use_snps, paste0(output_dir, '/snpset_', n_k, '_random_', rep_0s, i), 
+                        quote=F, row.names=F, col.names=F)    
+        }
+
+    }
+
+    return(snp_list)          
+}
