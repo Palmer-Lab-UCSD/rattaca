@@ -205,3 +205,63 @@ argument_parser <- function(..., description=NULL)
 
     return(parse_arguments)
 }
+
+
+# TO DO: when processing multiple traits, exclude any rows 
+# that have NAs for all traits
+
+#' Save a Plink-formatted file listing all samples phenotyped
+#' for one or all traits in a dataset.
+#'
+#' @export
+#'
+#' @param phenotype_data (string)
+#'      File path to a csv file containing one named column of 
+#'      sample IDs and one or more named columns with phenotype
+#'      data.
+#' 
+#' @param id_column (string)
+#'      Text string with the header for the column containing
+#'      sample IDs.
+#' 
+#' @param trait_column (string)
+#'      (default NULL) Text string with the header for the desired
+#'      phenotype, if only processing one. If NULL, all non-ID
+#'      columns in the file will be processed. 
+#' @param output_dir (string)
+#'      The directory in which the Plink-formatted IDs file will be 
+#'      saved.
+#'
+#' @return A list containing (1) the file path to the Plink-formatted 
+#'      IDs file and (2) a vector of phenotyped IDs.
+#
+get_phenotyped_ids <- function(phenotype_data, id_column, trait_column = NULL, output_dir) {
+
+    pheno_dat <- read.csv(phenotype_data)
+
+    if (is.null(trait_column)) {
+    
+        phtyped_ids_file <- paste0(output_dir, '/phtyped_ids_all')
+    
+        write.table(data.frame(fam = 0, id = pheno_dat[[id_column]]), 
+                phtyped_ids_file, sep='\t', row.names=F, col.names=F, quote=F)
+
+        return(list(ids_file = phtyped_ids_file, ids = as.character(pheno_dat[[id_column]])))
+
+    } else {
+    
+        trait <- trait_column
+        phtyped_ids_file <- paste0(output_dir, '/phtyped_ids_', trait)
+    
+        trait_dat <- pheno_dat[[trait]]
+        names(trait_dat) <- pheno_dat[[id_column]]
+        trait_dat <- trait_dat[!is.na(trait_dat)]
+        
+        write.table(data.frame(fam = 0, id = names(trait_dat)), 
+                phtyped_ids_file, sep='\t', row.names=F, col.names=F, quote=F)
+
+        return(list(ids_file = phtyped_ids_file, ids = as.character(names(trait_dat))))
+
+        
+    }
+}
