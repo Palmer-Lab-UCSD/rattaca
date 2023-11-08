@@ -455,7 +455,7 @@ get_common_snpset <- function(train_genotypes, test_genotypes) {
 }
 
 
-#' Produce train and test datasets with SNPs randomly sampled
+#' Produce one or multiple sets of SNPs randomly sampled
 #' from an input SNP set
 #'
 #' @export
