@@ -340,3 +340,46 @@ gen_sim_closure_r_sq <- function(r_sq, genotypes,
                          u,
                          sqrt(var_error)))
 }
+
+
+#' Predict phenotypes in a test dataset with known trait values using 
+#' parameters from a previously fit model, and assess model performance
+#'
+#' @export
+#'
+#' @param phenotypes (numeric)
+#'      A named vector of observed phenotype values for a single trait
+#' @param genotypes (matrix)
+#'      A matrix of m samples by n SNPs, with samples in the same
+#'      order as phenotypes
+#' @param fitted_u (numeric)
+#'      A vector of marker effects from a fitted model
+#' @param fitted_beta (numeric)
+#'      The intercept term from a fitted model
+#' 
+#' @return A list of (1) trait observations from the test set,
+#'      (2) trait predictions for the test set, and (3,4,5)
+#'      model performance metrics on the test set  
+#
+validate_test_preds <- function(phenotypes,
+                           genotypes, 
+                           fitted_u,         
+                           fitted_beta) 
+{
+    
+    if (!identical(rownames(genotypes),names(phenotypes)))
+        stop("Genotype and phenotype data are not properly aligned")
+                   
+
+    # predict on the test set using u, beta from the trained model
+    test_pred <- predict_lmm(genotypes, fitted_u, fitted_beta)
+ 
+    # goodness-of-fit measures
+    rho <- cor(test_pred, phenotypes, method='spearman')
+    r <- cor(test_pred, phenotypes, method='pearson')
+    r_sq <- compute_r_sq(test_pred, phenotypes)
+    
+    out <- list(obs = phenotypes, pred = test_pred, r_sq = r_sq, pearson_corr = r, spearman_corr = rho)
+    return(out)
+
+}
