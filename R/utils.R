@@ -628,3 +628,40 @@ align_data <- function(genotypes,  # matrix: n samples x q variants
     out <- list(trait = trait, ids = rat_ids, geno_file = geno_file, geno = geno, pheno = trait_dat)
     return(out)
 } 
+
+
+#' Format trait observations and predictions into a dataframe
+#'
+#' @export
+#'
+#' @param lst (list)
+#'      A list with elements $obs (named trait observations) and $pred (trait
+#'      predictions in the same order as $obs). Each element may itself be a 
+#'      list of length k sets of observations or predictions, such as output
+#'      by kfold_cv()
+#' 
+#' @return A dataframe of all IDs, observations, and predictions, concatenated
+#'      across all k folds
+#
+
+format_obs_pred <- function(lst) # list with trait observations and predictions
+{
+
+    k <- numeric()
+    rfids <- character()
+    obs <- numeric()
+    pred <- numeric()
+    
+    for (i in seq_along(lst)) {
+    
+        k <- c(k, rep(i, length(lst[[i]]$obs)))
+        rfids <- c(rfids, names(lst[[i]]$obs))
+        obs <- c(obs, lst[[i]]$obs)
+        pred <- c(pred, lst[[i]]$pred)
+    
+    }
+    
+    df <- data.frame(kfold = k, rfid = rfids, obs = obs, pred = pred)
+    return(df)
+        
+}
