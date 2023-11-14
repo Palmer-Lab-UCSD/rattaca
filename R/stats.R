@@ -207,3 +207,55 @@ kfold_cv <- function(data, num_folds)
     return(model_results)
     
 } 
+
+
+#' Conduct a PCA on train- and test-set genotypes using Plink
+#'
+#' @export
+#'
+#' @param train_genotypes (character)
+#'      The file path/prefix for the training Plink dataset.
+#' 
+#' @param test_genotypes (character)
+#'      The file path/prefix for the test Plink dataset.
+#'
+#' @param trait (character)
+#'      The name of the trait to be analyzed
+#' 
+#' @return A list of (1) the trait name, (2) the path to the Plink file
+#'      of PCA results
+#
+pca_plink_genotypes <- function(train_genotypes, test_genotypes, trait)
+{
+
+    train_file <- train_genotypes
+    test_file <- test_genotypes
+
+    # merge train/test genotype data
+    merge_args <- c('-bfile', train_file, 
+                    '--bmerge', test_file,
+                    '--make-bed',
+                    '--out', paste0(pca_dir, '/', trait, '_merged')
+                    )
+    
+    # print the plink call to the user
+    print(paste('Plink merge call:', plink2, paste(merge_args, collapse=' ')))
+
+    # run plink
+    system2(plink1, merge_args)
+
+    # conduct PCA
+    pca_args <- c('-bfile', paste0(pca_dir, '/', trait, '_merged'),
+                  '--pca',
+                  '--out', paste0(pca_dir, '/', trait, '_pca')
+                  )
+    
+    # run plink
+    system2(plink2, pca_args)
+
+    # print the plink call to the user
+    print(paste('Plink PCA call:', plink2, paste(pca_args, collapse=' ')))
+    
+    return(list(trait = trait, pca_file = paste0(pca_dir, '/', trait, '_pca')))
+
+}
