@@ -259,3 +259,20 @@ pca_plink_genotypes <- function(train_genotypes, test_genotypes, trait)
     return(list(trait = trait, pca_file = paste0(pca_dir, '/', trait, '_pca')))
 
 }
+
+
+#' Standard-scale a dataset into Z-scores
+#'
+#' @export
+#'
+#' @param data (numeric)
+#'      Any numeric vector
+#' 
+#' @return A vector of Z-scores 
+#
+zscore <- function(data){
+
+    z <- (data - mean(data)) / sd(data)
+    return(z)
+
+}
