@@ -794,3 +794,46 @@ plot_pca <- function(plink_pca,
     dev.off()
                          
 }
+
+
+#' Given results from multiple k-fold cross-validations, identify the
+#' model with the best mean cross-validation performance
+#'
+#' @export
+#'
+#' @param crossval_list (list)
+#'      A list with results from multiple k-fold cross-validations. Each
+#'      element must be a list as produced by kfold_crossval() tested on
+#'      a different genomic dataset 
+#' 
+#' @return The integer value identifying the list element with the best
+#'      mean cross-validation performance
+#
+best_kfold_mod <- function(crossval_list)
+{
+    if (length(crossval_list) == 1)
+        stop('Must include results from >1 cross-validation run')
+    
+    mean_cv_perf <- numeric()
+    
+    # get the mean pearson correlation coef for each CV fold
+    for (i in 1:length(crossval_list)){
+    
+        cv <- crossval_list[[i]]
+        cv_test <- cv$test
+        fold_r <- numeric()
+
+        for (j in 1:length(cv_test)){
+            
+            fold_r <- c(fold_r, cv_test[[j]]$pearson_corr)
+        }
+        
+        mean_r <- mean(fold_r)
+        mean_cv_perf <- c(mean_cv_perf, mean_r)
+    }
+    
+    # identify the fold with the best performance
+    top_mod <- which.max(mean_cv_perf)
+    
+    return(top_mod)
+}
