@@ -684,7 +684,6 @@ format_obs_pred <- function(lst) # list with trait observations and predictions
 #' @return A list containing (1) the trait analyzed, (2) all prediction ranks,
 #'      and (3) all prediction z-scores
 #
-# function to get rank order of predictions
 get_ranks_zscores <- function(predictions, # named vector of trait predictions
                       trait,       # character string
                       output_dir=NULL) # character directory path
@@ -706,3 +705,92 @@ get_ranks_zscores <- function(predictions, # named vector of trait predictions
 
 }
 
+
+#' Plot the results of a Plink PCA to pdf files
+#'
+#' @export
+#'
+#' @param plink_pca (list)
+#'      A list containing elements $trait (the trait to analyze) and $pca_file
+#'      (the path to Plink .eigenvec PCA results), as output by 
+#'      pca_plink_genotypes()
+#' 
+#' @param train_genotypes (character)
+#'      A genotype matrix from the training set
+#' 
+#' #' @param test_genotypes (character)
+#'      A genotype matrix from the test set
+#' 
+#' #' @param output_dir (character)
+#'      The directory in which to save pdf plots 
+#' 
+#' @return None. Plots are saved to files, without output into the R 
+#'      environment
+#
+plot_pca <- function(plink_pca, 
+                     train_genotypes, 
+                     test_genotypes,
+                     output_dir)
+{
+
+    # read PCA results
+    pca_df <- read.table(paste0(plink_pca$pca_file, '.eigenvec'), header=F)
+    eigenval <- read.table(paste0(plink_pca$pca_file, '.eigenval'), header=F)$V1
+    names(eigenval) <- paste0('pc', seq(1,10))
+    names(pca_df) <- c('fid', 'rfid', paste0('pc', seq(1,10)))
+    train_rfids <- rownames(train_genotypes$geno)
+    test_rfids <- rownames(test_genotypes$geno)
+    pca_df$dataset <- sapply(pca_df$rfid, function(x) 
+        if  (x %in% train_rfids) {
+            return('train')
+        } else if (x %in% test_rfids) {
+            return('test')
+        } else {
+            return(NA)
+        }
+        )
+
+    # plot PCA results
+    pdf(paste0(output_dir, '/', plink_pca$trait, '_gtypes_pc1_vs_pc2.pdf'), 6,6)
+    plot(pca_df$pc1,pca_df$pc2, col=0,
+         main=paste(plink_pca$trait, 'Genotype Data: PC1 vs. PC2'),
+         xlab=paste0('PC1  (', round(eigenval['pc1']/sum(eigenval)*100,2),' %)'),
+         ylab=paste0('PC2  (', round(eigenval['pc2']/sum(eigenval)*100,2),' %)'))
+    points(pca_df[pca_df$dataset=='train',]$pc1,pca_df[pca_df$dataset=='train',]$pc2, col=alpha('blue',0.5), cex=1.2, pch=16)
+    points(pca_df[pca_df$dataset=='train',]$pc1,pca_df[pca_df$dataset=='train',]$pc2, lwd=1.5, cex=1.2)
+    points(pca_df[pca_df$dataset=='test',]$pc1,pca_df[pca_df$dataset=='test',]$pc2, col=alpha('red',0.5), cex=1.2, pch=16)
+    points(pca_df[pca_df$dataset=='test',]$pc1,pca_df[pca_df$dataset=='test',]$pc2, lwd=1.5, cex=1.2)
+    legend('topleft',inset=c(0.02,0.02), title='Dataset',legend=c('Train','Test'),bg='white',
+           pch=16,cex=1.2,col=c(alpha('blue',0.5),alpha('red',0.5)))
+    legend('topleft',inset=c(0.02,0.02), title='',legend=c('Train','Test'),bty='n',pch=1,pt.lwd=1.5,cex=1.2)
+    dev.off()
+
+    pdf(paste0(output_dir, '/', plink_pca$trait, '_gtypes_pc1_vs_pc3.pdf'), 6,6)
+    plot(pca_df$pc1,pca_df$pc3, col=0,
+         main=paste(plink_pca$trait, 'Genotype Data: PC1 vs. PC3'),
+         xlab=paste0('PC1  (', round(eigenval['pc1']/sum(eigenval)*100,2),' %)'),
+         ylab=paste0('PC3  (', round(eigenval['pc3']/sum(eigenval)*100,2),' %)'))
+    points(pca_df[pca_df$dataset=='train',]$pc1,pca_df[pca_df$dataset=='train',]$pc3, col=alpha('blue',0.5), cex=1.2, pch=16)
+    points(pca_df[pca_df$dataset=='train',]$pc1,pca_df[pca_df$dataset=='train',]$pc3, lwd=1.5, cex=1.2)
+    points(pca_df[pca_df$dataset=='test',]$pc1,pca_df[pca_df$dataset=='test',]$pc3, col=alpha('red',0.5), cex=1.2, pch=16)
+    points(pca_df[pca_df$dataset=='test',]$pc1,pca_df[pca_df$dataset=='test',]$pc3, lwd=1.5, cex=1.2)
+    legend('topleft',inset=c(0.02,0.02), title='Dataset',legend=c('Train','Test'),bg='white',
+           pch=16,cex=1.2,col=c(alpha('blue',0.5),alpha('red',0.5)))
+    legend('topleft',inset=c(0.02,0.02), title='',legend=c('Train','Test'),bty='n',pch=1,pt.lwd=1.5,cex=1.2)
+    dev.off()
+
+    pdf(paste0(output_dir, '/', plink_pca$trait, '_gtypes_pc2_vs_pc3.pdf'), 6,6)
+    plot(pca_df$pc2,pca_df$pc3, col=0,
+         main=paste(plink_pca$trait, 'Genotype Data: PC2 vs. PC3'),
+         xlab=paste0('PC2  (', round(eigenval['pc2']/sum(eigenval)*100,2),' %)'),
+         ylab=paste0('PC3  (', round(eigenval['pc3']/sum(eigenval)*100,2),' %)'))
+    points(pca_df[pca_df$dataset=='train',]$pc2,pca_df[pca_df$dataset=='train',]$pc3, col=alpha('blue',0.5), cex=1.2, pch=16)
+    points(pca_df[pca_df$dataset=='train',]$pc2,pca_df[pca_df$dataset=='train',]$pc3, lwd=1.5, cex=1.2)
+    points(pca_df[pca_df$dataset=='test',]$pc2,pca_df[pca_df$dataset=='test',]$pc3, col=alpha('red',0.5), cex=1.2, pch=16)
+    points(pca_df[pca_df$dataset=='test',]$pc2,pca_df[pca_df$dataset=='test',]$pc3, lwd=1.5, cex=1.2)
+    legend('topleft',inset=c(0.02,0.02), title='Dataset',legend=c('Train','Test'),bg='white',
+           pch=16,cex=1.2,col=c(alpha('blue',0.5),alpha('red',0.5)))
+    legend('topleft',inset=c(0.02,0.02), title='',legend=c('Train','Test'),bty='n',pch=1,pt.lwd=1.5,cex=1.2)
+    dev.off()
+                         
+}
