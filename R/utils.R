@@ -643,7 +643,6 @@ align_data <- function(genotypes,  # matrix: n samples x q variants
 #' @return A dataframe of all IDs, observations, and predictions, concatenated
 #'      across all k folds
 #
-
 format_obs_pred <- function(lst) # list with trait observations and predictions
 {
 
@@ -665,3 +664,45 @@ format_obs_pred <- function(lst) # list with trait observations and predictions
     return(df)
         
 }
+
+
+#' Given a set of trait predictions, get the rank order and the z-score
+#' of each
+#'
+#' @export
+#'
+#' @param predictions (numeric)
+#'      A named vector of trait predictions
+#' 
+#' @param trait (character)
+#'      The name of the trait to be analyzed
+#' 
+#' #' @param output_dir (character)
+#'      (default NULL) The directory in which to save a dataframe of 
+#'      trait predictions, prediction ranks, and z-scores, if desired
+#' 
+#' @return A list containing (1) the trait analyzed, (2) all prediction ranks,
+#'      and (3) all prediction z-scores
+#
+# function to get rank order of predictions
+get_ranks_zscores <- function(predictions, # named vector of trait predictions
+                      trait,       # character string
+                      output_dir=NULL) # character directory path
+{
+
+    pred_rank <- rank(predictions)
+    pred_zscore <- zscore(predictions)
+    
+    if (!is.null(output_dir)){
+        out_df <- data.frame(id = names(predictions), pred = predictions, 
+                             rank = pred_rank, zscore = pred_zscore)
+        names(out_df) <- c('id', trait, paste0(trait, '_rank'), paste0(trait, '_zscore'))
+        write.csv(out_df, paste0(output_dir, '/', trait, '_predictions.csv'),
+                             row.names=F, quote=F)
+
+    }
+                       
+    return(list(trait = trait, rank = pred_rank, z_score = pred_zscore))    
+
+}
+
