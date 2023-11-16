@@ -797,7 +797,7 @@ plot_pca <- function(plink_pca,
 
 
 #' Given results from multiple k-fold cross-validations, identify the
-#' model with the best mean cross-validation performance
+#' model with the best mean cross-validation performance.
 #'
 #' @export
 #'
@@ -836,4 +836,131 @@ best_kfold_mod <- function(crossval_list)
     top_mod <- which.max(mean_cv_perf)
     
     return(top_mod)
+}
+
+
+#' Plot the results of a k-fold cross validation to files
+#'
+#' @export
+#'
+#' @param kfold_results (list)
+#'      A list with results from a k-fold cross-validations, as produced
+#'      by kfold_cv(). Must contain elements $trait (the trait name) and
+#'      $test (a list of k sets oftrait observations, predictions, and 
+#'      performance metrics from a k-fold cross-validation)
+#' 
+#' @param output_dir (string)
+#'      The directory in which the pdf files will be saved
+#' 
+#' @return None. Plots are saved to files, without output into the R 
+#'      environment
+#
+plot_kfold <- function(kfold_results, output_dir) {
+
+    test_dat <- kfold_results$test
+    num_folds <- length(test_dat)
+    trait <- kfold_results$trait
+    test_df <- format_obs_pred(test_dat)
+    lm_slope <- numeric()
+    lms <- list()
+    
+    # plot 1: zoomed to fit
+    pdf(paste0(output_dir, '/', trait, '_', num_folds, 'fold_crossval_zoomed.pdf'), 6, 6)
+
+    # empty plot
+    with(test_df, plot(obs, pred, col=0,
+        xlab='Observed', ylab='Predicted'))
+    title(main = paste0(trait, ' ', num_folds, '-fold cross-validation'),
+         line = 2.2)
+    plot_cols <- viridis(num_folds, 1, 0, 0.6, 1)
+    
+    # plot points
+    for (i in 1:num_folds){
+        
+        plot_dat <- test_dat[[i]]
+        plot_df <- test_df[test_df$kfold==i,]
+        plot_col <- 'black' #viridis(0.1,0.1,0.1) # make this relate to i somehow
+        plot_col <- plot_cols[i]
+        lm <- lm(pred ~ obs, plot_df)
+        lms[[i]] <- lm
+        lm_slope <- c(lm_slope, lm$coef[2])
+        with(plot_df, points(obs, pred, col = plot_col, pch = 16))
+        with(plot_df, points(obs, pred))
+        abline(lm, lwd = 2, col = plot_col)
+    }
+    
+    # plot lines
+    for ( i in 1:length(lms)){
+        abline(lms[[i]], lty=2, col=plot_cols[i])
+    }
+    
+    # legend
+    legend('bottomright', title='Fold', legend=seq.int(1,num_folds), 
+           bg='white', cex=0.8, lty=1, lwd=2, col=plot_cols)
+
+    # margin text: mean performance metrics
+    r_sq <- mean(sapply(test_dat, function(x) x$r_sq))
+    r <- mean(sapply(test_dat, function(x) x$pearson_corr))
+    rho <- mean(sapply(test_dat, function(x) x$spearman_corr))                 
+    r_sq <- paste0('r_sq: ', round(r_sq, 3))
+    r <- paste0('r: ', round(r,3))
+    rho <- paste0("rho: ", round(rho,3))
+    m <- paste0("m: ", round(mean(lm_slope),3))
+    str <- paste(r_sq, r, rho, m, sep = "  |  ")
+    # abline(lm, lwd =2)
+    mtext(str,side=3,adj=0.05,line=0.2,cex=1.1)
+
+    dev.off()
+                       
+
+    # plot 2: axes scaled 1:1
+    trait_min <- min(c(test_df$obs, test_df$pred))
+    trait_max <- max(c(test_df$obs, test_df$pred))
+
+    pdf(paste0(output_dir, '/', trait, '_', num_folds, 'fold_crossval_scaled.pdf'), 6, 6)
+
+    with(test_df, plot(obs, pred, col=0, xlim=c(trait_min, trait_max), ylim=c(trait_min, trait_max),
+        xlab='Observed', ylab='Predicted'))
+    title(main = paste0(trait, ' ', num_folds, '-fold cross-validation'),
+         line = 2.2)
+    plot_cols <- viridis(num_folds, 1, 0, 0.6, 1)
+    
+    # plot points
+    for (i in 1:num_folds){
+        
+        plot_dat <- test_dat[[i]]
+        plot_df <- test_df[test_df$kfold==i,]
+        plot_col <- 'black' #viridis(0.1,0.1,0.1) # make this relate to i somehow
+        plot_col <- plot_cols[i]
+        lm <- lm(pred ~ obs, plot_df)
+        lms[[i]] <- lm
+        lm_slope <- c(lm_slope, lm$coef[2])
+        with(plot_df, points(obs, pred, col = plot_col, pch = 16))
+        with(plot_df, points(obs, pred))
+        abline(lm, lwd = 2, col = plot_col)
+    }
+    
+    # plot lines
+    for ( i in 1:length(lms)){
+        abline(lms[[i]], lty=2, col=plot_cols[i])
+    }
+    
+    # legend
+    legend('bottomright', title='Fold', legend=seq.int(1,num_folds), 
+           lty=1, lwd=2, col=plot_cols)
+
+    # margin text: mean performance metrics
+    r_sq <- mean(sapply(test_dat, function(x) x$r_sq))
+    r <- mean(sapply(test_dat, function(x) x$pearson_corr))
+    rho <- mean(sapply(test_dat, function(x) x$spearman_corr))                 
+    r_sq <- paste0('r_sq: ', round(r_sq, 3))
+    r <- paste0('r: ', round(r,3))
+    rho <- paste0("rho: ", round(rho,3))
+    m <- paste0("m: ", round(mean(lm_slope),3))
+    str <- paste(r_sq, r, rho, m, sep = "  |  ")
+    # abline(lm, lwd =2)
+    mtext(str,side=3,adj=0.05,line=0.2,cex=1.1)
+
+    dev.off()
+
 }
