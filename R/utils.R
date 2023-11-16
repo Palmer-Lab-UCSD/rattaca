@@ -964,3 +964,62 @@ plot_kfold <- function(kfold_results, output_dir) {
     dev.off()
 
 }
+
+
+#' Given a directory containing multiple csv files of predictions for 
+#' different traits, merge all files into a single csv of results for
+#' all traits
+#'
+#' @export
+#'
+#' @param directory (character)
+#'      The directory path housing prediction results for multiple traits.
+#'      Within this directory, each individual trait's results must be 
+#'      inside a separate sub-directory identified by the trait name, with
+#'      a csv file named as <trait_name>_predictions.csv (as output by 
+#'      get_ranks_zscores()), e.g.: 
+#'      <directory>/<trait_name>/<trait_name>_predicitons.csv
+#' 
+#' @param traits (list or character)
+#'      Either a list or vector of trait names whose respective trait
+#'      predictions will be merged
+#' 
+#' @param output_dir (character)
+#'      (default NULL) The directory in which the csv of merged trait
+#'      predictions will be saved, if desired.
+#' 
+#' @param basename (character)
+#'      (default NULL) The stem of the filename used for the merged csv
+#'      file, if desired. Final results will be saved to
+#'      <output_dir>/<basename>_merged_predictions.csv
+#' 
+#' @return The dataframe of all merged trait predictions
+#
+# function to merge all trait predictions into one file
+merge_preds <- function(directory, # directory containing trait-named directories
+                        traits,    # list or vector of trait names
+                        output_dir=NULL, # directory to save the file, if desired
+                        basename=NULL)
+{
+
+    list_of_dfs <- list()
+    
+    # read in predictions for each trait
+    for (trait in traits){
+    
+        trait_df <- read.csv(paste0(directory, '/', trait, '/', trait, '_predictions.csv'))
+        list_of_dfs[[trait]] <- trait_df
+    
+    }
+
+    # merge all dataframes
+    all_preds <- Reduce(function(x,y) merge(x, y, all=T), list_of_dfs)
+    
+    if (!is.null(output_dir)){
+        write.csv(all_preds, paste0(output_dir, '/', basename, '_merged_predictions.csv'),
+                  row.names=F, quote=F)
+
+    }
+    return(all_preds)
+                        
+}
