@@ -23,6 +23,6 @@ Description: The RATTACA method aims at predicting rat
     stated goals of the RATTACA project, and scripts to
     integrate in bioinformatic pipelines.
 Encoding: UTF-8
-Copyright: #TODO
-License: #TODO
+Copyright: Palmer Lab
+License: MIT License
 RoxygenNote: 7.2.3
