@@ -476,7 +476,7 @@ get_common_snpset <- function(train_genotypes, test_genotypes) {
 #' @param output_dir (character)
 #'      The output directory in which to save the SNP sample(s)
 #'
-#' @return A vector of all SNP variants found in both datasets.
+#' @return A list of length 'iterations' with multiple random SNP samples
 #
 sample_snps <- function(input_snps,
                         keep = 50000,
