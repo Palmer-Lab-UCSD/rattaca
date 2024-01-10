@@ -542,7 +542,8 @@ sample_snps <- function(input_snps,
 #'      The path/prefix of Plink files from which to sample SNPs
 #' 
 #' @param snp_directory (character)
-#'      The directory in which to save the file(s) listing sampled SNPs
+#'      The directory storing 1 or more text files listing sampled SNPS,
+#'      as produced by sample_snps()
 #'
 #' @param output_dir (character)
 #'      The output directory in which to save the new Plink dataset(s)  
@@ -606,14 +607,18 @@ sample_snps_from_plink_files <- function(input_genotypes,   # genotype data in p
 #' 
 #' @param phenotypes (numeric)
 #'      A named numeric vector of phenotype measurements
+#' 
+#' @param trait (character)
+#'      The name of the trait being analyzed
 #'
 #' @return A list of (1) the trait name, (2) all sample IDs shared between
 #'      datasets, (3) the path/prefix for the Plink dataset used in
 #'      alignment, (4) the aligned genotype matrix, and (5) the aligned
 #'      phenotype data
 #
-align_data <- function(genotypes,  # matrix: n samples x q variants
-                       phenotypes)#, # df w/ row names: samples x 1 trait, output from load_and_prepare_trait_data()
+align_data <- function(genotypes,
+                       phenotypes,
+                       trait)
 {
     
     geno_file <- genotypes$geno_file
