@@ -235,13 +235,13 @@ argument_parser <- function(..., description=NULL)
 #' @return A list containing (1) the file path to the Plink-formatted 
 #'      IDs file and (2) a vector of phenotyped IDs.
 #
-get_phenotyped_ids <- function(phenotype_data, id_column, trait_column = NULL, output_dir) {
+get_phenotyped_ids <- function(phenotype_data, id_column, output_dir, trait_column = NULL) {
 
     pheno_dat <- read.csv(phenotype_data)
 
     if (is.null(trait_column)) {
     
-        phtyped_ids_file <- paste0(output_dir, '/phtyped_ids_all')
+        phtyped_ids_file <- file.path(output_dir, 'phtyped_ids_all')
     
         write.table(data.frame(fam = 0, id = pheno_dat[[id_column]]), 
                 phtyped_ids_file, sep='\t', row.names=F, col.names=F, quote=F)
@@ -251,7 +251,7 @@ get_phenotyped_ids <- function(phenotype_data, id_column, trait_column = NULL, o
     } else {
     
         trait <- trait_column
-        phtyped_ids_file <- paste0(output_dir, '/phtyped_ids_', trait)
+        phtyped_ids_file <- file.path(output_dir, paste0('phtyped_ids_', trait))
     
         trait_dat <- pheno_dat[[trait]]
         names(trait_dat) <- pheno_dat[[id_column]]
