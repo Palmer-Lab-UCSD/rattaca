@@ -428,7 +428,7 @@ make_plink_dataset <- function(input_genotypes,
         ld_outfile_prefix <- paste0(outfile_prefix, '_', snp_n, '_nonLD_snps')
         ld_plink_file_name <- file.path(output_dir, ld_outfile_prefix)
 
-        args <- c(args, '--extract', snps_to_keep '--out', ld_plink_file_name)
+        args <- c(args, '--extract', snps_to_keep, '--out', ld_plink_file_name)
 
         # print the plink call to the user
         print(paste('Plink call:', plink2, paste(args, collapse=' ')))
