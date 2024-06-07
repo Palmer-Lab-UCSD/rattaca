@@ -425,7 +425,7 @@ make_plink_dataset <- function(input_genotypes,
 
         snps_to_keep <- paste0(plink_file_name,'.prune.in')
         snp_n <- length(readLines(snps_to_keep))
-        ld_outfile_prefix <- paste0(outfile_prefix, '_', snp_n, '_nonLD_snps')
+        ld_outfile_prefix <- paste0(outfile_prefix, '_n', snp_n, '_nonLD_snps')
         ld_plink_file_name <- file.path(output_dir, ld_outfile_prefix)
 
         args <- c(args, '--extract', snps_to_keep, '--out', ld_plink_file_name)
@@ -441,9 +441,7 @@ make_plink_dataset <- function(input_genotypes,
             paste0(plink_file_name,'.bim'), paste0(plink_file_name,'.fam')))
         
         # move LD-pruned SNP files to SNP directory
-        if (snp_directory) {
-            system2('mv', args=c('*.prune.*', snp_dir))
-        }
+        system2('mv', args=c('*.prune.*', snp_directory))
 
         # reset the plink file name to output to the R console
         plink_file_name <- ld_plink_file_name
