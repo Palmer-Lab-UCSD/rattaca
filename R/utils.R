@@ -329,6 +329,9 @@ get_phenotyped_ids <- function(phenotype_data, id_column, output_dir, trait_colu
 #'      (default NULL) If LD-pruning, the desired step size (in variant 
 #'      count) by which the pruning window will slide before estimating 
 #'      pairwise LD again.
+#' @param snp_directory (string)
+#'      (default NULL) If LD-pruning, the desired directory path in which to
+#'      save pruned.in and pruned.out files
 #' @param return_data (bool) 
 #'      (default TRUE) Whether or not to return the new dataset in the R 
 #'      environment. If TRUE, returns a list containing (1) the file 
@@ -351,7 +354,8 @@ make_plink_dataset <- function(input_genotypes,
                                ld_prune = FALSE,      
                                ld_r2 = NULL,          
                                ld_window_size = NULL, 
-                               ld_step_size = NULL,   
+                               ld_step_size = NULL,
+                               snp_directory = NULL,   
                                return_data=TRUE)      
 {
     
@@ -395,8 +399,8 @@ make_plink_dataset <- function(input_genotypes,
     # LD pruning
     if (ld_prune) {
         
-        if( is.null(ld_r2) | is.null(ld_window_size) | is.null(ld_step_size) ) {
-            stop('Please provide LD-pruning parameters: r^2, window size, and step size')
+        if( is.null(ld_r2) | is.null(ld_window_size) | is.null(ld_step_size) | is.null(snp_directory)) {
+            stop('Please provide LD-pruning parameters: r^2, window size, step size, and snp directory')
         }
         
         args <- c(args, '--indep-pairwise', ld_window_size, ld_step_size, ld_r2)
@@ -412,6 +416,38 @@ make_plink_dataset <- function(input_genotypes,
 
     # run plink
     system2(plink2, args)
+
+    # if LD-pruning, create the final dataset using only SNPs in linkage equilibrium
+    if (ld_prune) {
+
+        # reset arguments to read in the file that was just produced
+        args <- c('-bfile', plink_file_name, '-make-bed')
+
+        snps_to_keep <- paste0(plink_file_name,'.prune.in')
+        snp_n <- length(readLines(snps_to_keep))
+        ld_outfile_prefix <- paste0(outfile_prefix, '_', snp_n, '_nonLD_snps')
+        ld_plink_file_name <- file.path(output_dir, ld_outfile_prefix)
+
+        args <- c(args, '--extract', snps_to_keep '--out', ld_plink_file_name)
+
+        # print the plink call to the user
+        print(paste('Plink call:', plink2, paste(args, collapse=' ')))
+
+        # run plink
+        system2(plink2, args)
+
+        # remove the intermediate plink files
+        system2('rm', args=c(paste0(plink_file_name,'bed'), 
+            paste0(plink_file_name,'.bim'), paste0(plink_file_name,'.fam')))
+        
+        # move LD-pruned SNP files to SNP directory
+        if (snp_directory) {
+            system2('mv', args=c('*.prune.*', snp_dir))
+        }
+
+        # reset the plink file name to output to the R console
+        plink_file_name <- ld_plink_file_name
+    }
     
     if (return_data){
     
