@@ -124,3 +124,155 @@ impute <- function(genotypes)
 
     return(apply(genotypes, 1, mean_imputation))
 }
+
+
+#' Perform a k-fold cross-validation on rrBLUP predictions for one trait
+#'
+#' @export
+#'
+#' @param data (list)
+#'      An aligned genotype/phenotype dataset, as produced by rattaca::align:
+#'      A list with elements $trait (character string naming the trait to
+#'      analyze), $pheno (a named vector of phenotype observations), and $geno
+#'      (a genotype matrix aligned with $pheno)
+#' 
+#' @param num_folds (int)
+#'      The desired number of folds (k) used for k-fold cross-validation
+#'
+#' @return A list of (1) the trait name, (2) the list of k model fits onto each
+#'      training sample (as produced by fit()), and (3) the list of k model
+#'      validations of each test sample (as produced by validate_test_preds())
+#
+kfold_cv <- function(data, num_folds)
+{
+            
+    # set up k-fold cross validation: train/test split on RATS
+    # by randomly assigning individuals to 1 of k groups
+    trait_df <- data.frame(trait_val = data$pheno, kfold = NA)    
+    colnames(trait_df)[1] <- data$trait
+    obs_per_fold <- ceiling(length(data$pheno) / num_folds)
+    remaining_indices <- 1:length(data$pheno)
+
+    for (fold in 1:num_folds) {
+
+        if (fold < num_folds) {
+
+            fold_size <- obs_per_fold
+
+      } else {
+
+            fold_size <- length(remaining_indices)
+      }
+
+        fold_indices <- sample(remaining_indices, size = fold_size, replace = FALSE)
+        trait_df$kfold[fold_indices] <- fold
+        remaining_indices <- setdiff(remaining_indices, fold_indices)
+    }
+
+    # empty lists to store model parameters and performance
+    train_fits <- list()
+    test_fits <- list()
+    test_preds <- list()
+    test_out <- list()
+
+    # k-fold cross validation
+    for (k in 1:num_folds){
+    
+        # set up phenotype train/test sets
+        test_rfids <- rownames(trait_df[trait_df$kfold == k,])
+        train_rfids <- rownames(trait_df[trait_df$kfold != k,])
+
+        # split phenotype data
+        pheno_train <- trait_df[train_rfids, data$trait]
+        names(pheno_train) <- train_rfids
+        pheno_test <- trait_df[test_rfids, data$trait]
+        names(pheno_test) <- test_rfids
+
+        # split genotype data
+        geno_train <- data$geno[train_rfids,]    
+        geno_test <- data$geno[test_rfids,]
+
+        # run rrBLUP on the training set
+        train_fits[[k]] <- fit(pheno_train, geno_train)
+
+        # re-fit the trained model to the test data
+        test_fit <- validate_test_preds(pheno_test, geno_test, train_fits[[k]]$u, train_fits[[k]]$beta)
+        
+        test_out[[k]] <- list(obs = test_fit$obs, pred = test_fit$pred, r_sq = test_fit$r_sq, 
+                              pearson_corr = test_fit$pearson_corr, spearman_corr = test_fit$spearman_corr)
+        
+    } # end of k-fold loop
+    
+    model_results <- list(trait = data$trait, train = train_fits, test = test_out)
+    return(model_results)
+    
+} 
+
+
+#' Conduct a PCA on train- and test-set genotypes using Plink
+#'
+#' @export
+#'
+#' @param train_genotypes (character)
+#'      The file path/prefix for the training Plink dataset.
+#' 
+#' @param test_genotypes (character)
+#'      The file path/prefix for the test Plink dataset.
+#'
+#' @param trait (character)
+#'      The name of the trait to be analyzed
+#' 
+#' @return A list of (1) the trait name, (2) the path to the Plink file
+#'      of PCA results
+#
+pca_plink_genotypes <- function(train_genotypes, test_genotypes, trait)
+{
+
+    train_file <- train_genotypes
+    test_file <- test_genotypes
+
+    # merge train/test genotype data
+    merge_args <- c('-bfile', train_file, 
+                    '--bmerge', test_file,
+                    '--make-bed',
+                    '--out', paste0(pca_dir, '/', trait, '_merged')
+                    )
+    
+    # print the plink call to the user
+    print(paste('Plink merge call:', plink2, paste(merge_args, collapse=' ')))
+
+    # run plink
+    system2(plink1, merge_args)
+
+    # conduct PCA
+    pca_args <- c('-bfile', paste0(pca_dir, '/', trait, '_merged'),
+                  '--pca',
+                  '--out', paste0(pca_dir, '/', trait, '_pca')
+                  )
+    
+    # run plink
+    system2(plink2, pca_args)
+
+    # print the plink call to the user
+    print(paste('Plink PCA call:', plink2, paste(pca_args, collapse=' ')))
+    
+    return(list(trait = trait, pca_file = paste0(pca_dir, '/', trait, '_pca')))
+
+}
+
+
+#' Standard-scale a dataset into Z-scores
+#'
+#' @export
+#'
+#' @param data (numeric)
+#'      Any numeric vector
+#' 
+#' @return A vector of Z-scores 
+#
+zscore <- function(data){
+
+    z <- (data - mean(data)) / sd(data)
+    return(z)
+
+}

@@ -179,3 +179,30 @@ test_that("load_and_prepare_trait_data: correct data",
                                          raw_table[, sample_id])
           }
 )
+
+test_that("get_phenotyped_ids returns IDs phenotyped for one trait",
+    {
+        trait_file_name <- file.path("data", "trait.csv")
+        trait_dat <- read.csv(trait_file_name)
+        sample_id <- "rfid"      
+        trait_name <- "trait"  
+        phenotyped_ids <- trait_dat[!is.na(trait_dat[[trait_name]]),][[sample_id]]
+
+        out <- rattaca::get_phenotyped_ids(trait_file_name, sample_id, output_dir="data")
+
+        testthat::expect_identical(phenotyped_ids, out$ids)
+    }
+)
+
+test_that("get_phenotyped_ids returns IDs phenotyped for all traits",
+    {
+        trait_file_name <- file.path("data", "trait.csv")
+        trait_dat <- read.csv(trait_file_name)
+        sample_id <- "rfid"      
+        phenotyped_ids <- trait_dat[[sample_id]]
+
+        out <- rattaca::get_phenotyped_ids(trait_file_name, sample_id, trait_column=NULL, output_dir="data")
+
+        testthat::expect_identical(phenotyped_ids, out$ids)
+    }
+)
