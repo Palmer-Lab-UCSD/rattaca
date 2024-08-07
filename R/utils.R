@@ -842,7 +842,7 @@ plot_pca <- function(plink_pca,
 #'
 #' @param crossval_list (list)
 #'      A list with results from multiple k-fold cross-validations. Each
-#'      element must be a list as produced by kfold_crossval() tested on
+#'      element must be a list as produced by kfold_cv() tested on
 #'      a different genomic dataset 
 #' 
 #' @return The integer value identifying the list element with the best
@@ -877,6 +877,63 @@ best_kfold_mod <- function(crossval_list)
     return(top_mod)
 }
 
+
+#' Save the results from one k-fold cross-validation to a csv.
+#'
+#' @export
+#'
+#' @param cv_results (list)
+#'      A list with results from one k-fold cross-validations, as output by 
+#'      kfold_cv(). 
+#' #' @param output_dir (character)
+#'      The directory in which to save pdf plots 
+#' 
+#' @return None. Results are saved to file
+#
+save_cv_results <- function(cv_results, output_dir) {
+    
+    test_results <- cv_results$test
+    n_folds <- length(test_results)
+    
+    obs <- c()
+    pred <- c()
+    r_sq <- c()
+    r <- c()
+    rho <- c()
+    fold <- c()
+
+    for (k in 1:length(test_results)) {
+        out <- cv_results$test[[k]]
+        obs <- c(obs, out$obs)
+        pred <- c(pred, out$pred)
+        fold <- c(fold, rep(k, length(out$obs)))
+        r_sq <- c(r_sq, rep(out$r_sq, length(out$obs)))
+        r <- c(r, rep(out$pearson_corr, length(out$obs)))
+        rho <- c(rho, rep(out$spearman_corr, length(out$obs)))
+    }
+
+    df1 <- data.frame(
+        trait = rep(trait, length(obs)),
+        fold = fold,
+        obs = obs,
+        pred = pred,
+        r_sq = r_sq,
+        r = r,
+        rho = rho)
+
+    df2 <- data.frame(
+        trait = unique(df1$trait),
+        fold = unique(df1$fold),
+        r_sq = unique(df1$r_sq),
+        r = unique(df1$r),
+        rho = unique(df1$rho))
+
+    timestamp <- format(Sys.time(), '%Y%m%d-%H:%M:%S')
+    write.csv(df1, file.path(output_dir, paste0(trait, '_', n_folds, 'fold_cv_', timestamp, '_results.csv')),
+        row.names=F, quote=F, na='')
+    write.csv(df2, file.path(output_dir, paste0(trait, '_', n_folds, 'fold_cv_', timestamp, '_summary.csv')),
+        row.names=F, quote=F, na='')
+}
 
 #' Plot the results of a k-fold cross validation to files
 #'
