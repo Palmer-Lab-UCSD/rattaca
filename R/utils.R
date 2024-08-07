@@ -835,6 +835,43 @@ plot_pca <- function(plink_pca,
 }
 
 
+#' Given results from one k-fold cross-validation, identify the
+#' fold with the best model performance.
+#'
+#' @export
+#'
+#' @param cv_results (list)
+#'      A list with results from one k-fold cross-validations, as output by 
+#'      kfold_cv(). 
+#' 
+#' @param metric (character)
+#'      The desired statistic to use to identify the best model fit. The 'best'
+#'      fold is defined as that whose performance maximizes this metric.
+#' 
+#' @return The integer value identifying the 'test' list element (i.e., the 
+#'      fitted fold) with the best model performance, per the desired 
+#'      performance metric.
+#
+
+best_fold <- function(cv_results,
+                     metric=c('pearson','spearman','r_sq')) {
+
+    test_results <- cv_results$test
+    perf <- c()
+    for (k in 1:length(test_results)) {
+        if (metric == 'pearson') {
+            perf <- c(perf, test_results[[k]]$pearson_corr)    
+        } else if (metric == 'spearman') {
+            perf <- c(perf, test_results[[k]]$spearman_corr)    
+        } else if (metric == 'r_sq') {
+            perf <- c(perf, test_results[[k]]$r_sq)                
+        }
+    }
+    
+    return(which.max(perf))
+}
+
+
 #' Given results from multiple k-fold cross-validations, identify the
 #' model with the best mean cross-validation performance.
 #'
@@ -940,7 +977,7 @@ save_cv_results <- function(cv_results, output_dir) {
 #' @export
 #'
 #' @param kfold_results (list)
-#'      A list with results from a k-fold cross-validations, as produced
+#'      A list with results from a k-fold cross-validation, as produced
 #'      by kfold_cv(). Must contain elements $trait (the trait name) and
 #'      $test (a list of k sets oftrait observations, predictions, and 
 #'      performance metrics from a k-fold cross-validation)
