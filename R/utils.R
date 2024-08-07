@@ -732,9 +732,9 @@ get_ranks_zscores <- function(predictions, # named vector of trait predictions
     pred_zscore <- zscore(predictions)
     
     if (!is.null(output_dir)){
-        out_df <- data.frame(id = names(predictions), pred = predictions, 
+        out_df <- data.frame(rfid = names(predictions), pred = predictions, 
                              rank = pred_rank, zscore = pred_zscore)
-        names(out_df) <- c('id', trait, paste0(trait, '_rank'), paste0(trait, '_zscore'))
+        names(out_df) <- c('rfid', trait, paste0(trait, '_rank'), paste0(trait, '_zscore'))
         write.csv(out_df, paste0(output_dir, '/', trait, '_predictions.csv'),
                              row.names=F, quote=F)
 

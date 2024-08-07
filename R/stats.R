@@ -178,6 +178,7 @@ kfold_cv <- function(data, num_folds)
     # k-fold cross validation
     for (k in 1:num_folds){
     
+        cat(data$trait, 'CV fold', paste0(k,':'), format(Sys.time(), '%Y-%m-%d %H:%M:%S'), '\n')
         # set up phenotype train/test sets
         test_rfids <- rownames(trait_df[trait_df$kfold == k,])
         train_rfids <- rownames(trait_df[trait_df$kfold != k,])
