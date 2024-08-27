@@ -852,12 +852,12 @@ plot_pca <- function(plink_pca,
 #'      fitted fold) with the best model performance, per the desired 
 #'      performance metric.
 #
-
 best_fold <- function(cv_results,
                      metric=c('pearson','spearman','r_sq')) {
 
     test_results <- cv_results$test
     perf <- c()
+    
     for (k in 1:length(test_results)) {
         if (metric == 'pearson') {
             perf <- c(perf, test_results[[k]]$pearson_corr)    
@@ -1039,7 +1039,7 @@ plot_kfold <- function(kfold_results, output_dir) {
     r <- paste0('r: ', round(r,3))
     rho <- paste0("rho: ", round(rho,3))
     m <- paste0("m: ", round(mean(lm_slope),3))
-    str <- paste(r_sq, r, rho, m, sep = "  |  ")
+    str <- paste('mean' r_sq, r, rho, m, sep = "  |  ")
     # abline(lm, lwd =2)
     mtext(str,side=3,adj=0.05,line=0.2,cex=1.1)
 
@@ -1090,7 +1090,7 @@ plot_kfold <- function(kfold_results, output_dir) {
     r <- paste0('r: ', round(r,3))
     rho <- paste0("rho: ", round(rho,3))
     m <- paste0("m: ", round(mean(lm_slope),3))
-    str <- paste(r_sq, r, rho, m, sep = "  |  ")
+    str <- paste('mean', r_sq, r, rho, m, sep = "  |  ")
     # abline(lm, lwd =2)
     mtext(str,side=3,adj=0.05,line=0.2,cex=1.1)
 
@@ -1150,7 +1150,7 @@ merge_preds <- function(directory, # directory containing trait-named directorie
     
     if (!is.null(output_dir)){
         write.csv(all_preds, paste0(output_dir, '/', basename, '_merged_predictions.csv'),
-                  row.names=F, quote=F)
+                  row.names=F, quote=F, na='')
 
     }
     return(all_preds)

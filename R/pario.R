@@ -198,5 +198,6 @@ write_pars <- function(trait, trait_file, genotype_prefix,
                    con=fconn)
     }
     close(fconn)
+    cat('Model parameters written to', filename, '\n')
 
 }
