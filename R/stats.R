@@ -277,3 +277,109 @@ zscore <- function(data){
     return(z)
 
 }
+
+
+#' Perform multiple power analyses on a set of hypothetical assignment groups.
+#' Genotypes are sampled into hypothetical assignment (high/low) groups 
+#' according to desired parameters, then used to simulate trait predictions 
+#' under the given model for power analyses under a combination of parameters.
+#'
+#' @export
+#'
+#' @param trait (character)
+#'      The trait name
+#' 
+#' @param genotypes (matrix)
+#'      A named genotype matrix for all predicted animals
+#' 
+#' @param predictions (numeric)
+#'      The named vector of trait predictions that will be used to separate
+#'      animals into respective high or low assignment groups.
+#' 
+#' @param fitted_mod (list)
+#'      A fitted model object, as output by rattaca::fit()
+#' 
+#' @param group_size (numeric)
+#'      (default c(0.05, 0.1, 0.25, 0.33)) A numeric vector reflecting the 
+#'      sample size(s) desired for each assigned group to compare in a power 
+#'      analysis. Can be input either as proportions of the total predicted 
+#'      sample or sample counts. For example, 0.1 will compare the highest 10% 
+#'      and lowest 10% of predictions, and 20 will compare the highest 20 and 
+#'      lowest 20 predictions.
+#' 
+#' @param alpha (numeric)
+#'      (default 0.05) The desired alpha value(s) (significance cutoff(s)) to 
+#'      use when determining statistical power to compare assigned groups.
+#' 
+#' @param reps (numeric)
+#'      (default 100) The desired number of replicate simulations to conduct
+#'      for each power analysis
+#' 
+#' @param outdir (character)
+#'      (default NULL) The desired output directory in which to save results
+#' 
+#' @return A dataframe with one row per combination of desired group sample 
+#'      size and alpha, and corresponding statistical power.
+#
+test_power <- function(
+    trait,
+    genotypes,   
+    predictions, 
+    fitted_mod,  
+    group_size=c(0.05, 0.1, 0.25, 0.33), 
+    alpha=0.05,
+    reps=100,
+    outdir=NULL)
+{
+    preds <- sort(predictions)
+
+    percent <- c()
+    sample_n <- c()
+    # produce genotype samples to compare
+    for (group_sample in group_size) {
+
+        # if groups are input as a fraction, calculate sample sizes
+        if (group_sample < 1) {
+            pct <- group_sample
+            group_n <- ceiling(length(preds)*group_sample)
+        } else { 
+            pct <- ceiling(group_sample/length(preds))
+            group_n <- group_sample
+        }
+        
+        low_rfids <- names(preds)[1:group_n]
+        high_rfids <- names(preds)[(length(preds)-(group_n+1)):length(preds)]
+
+        geno_low <- genotypes[low_rfids,]
+        geno_high <- genotypes[high_rfids,]
+
+        # create an LMM simulation closure for the fitted model
+        sim <- gen_trait_sim_closure(
+            intercept = fitted_mod$beta,
+            u = fitted_mod$u,
+            intercept_se = fitted_mod$beta.SE,
+            u_se = fitted_mod$u.SE,
+            sd_error = sqrt(fitted_mod$Ve))
+
+        power <- c()
+        sig_cutoff <- c()
+        for (sig in alpha) {
+            # power analysis on the combination of group size, alpha, 
+            pwr <- power_analysis(geno_low, geno_high, sim, sig=sig, m_power_reps=reps) 
+            power <- c(power, pwr)
+            sig_cutoff <- c(sig_cutoff, sig)
+        }
+        percent <- c(percent, rep(pct, length(power)))
+        sample_n <- c(sample_n, rep(group_n, length(power)))
+    }
+    
+    out_df <- data.frame(
+        pct_cutoff = percent,
+        group_n = sample_n,
+        alpha = sig_cutoff,
+        power = power)
+
+    write.csv(out_df, file.path(outdir, paste0(trait, '_test_power.csv')),
+              row.names=F, quote=F, na='')
+    return(out_df)
+}
