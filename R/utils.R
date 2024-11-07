@@ -205,3 +205,954 @@ argument_parser <- function(..., description=NULL)
 
     return(parse_arguments)
 }
+
+
+# TO DO: when processing multiple traits, exclude any rows 
+# that have NAs for all traits
+
+#' Save a Plink-formatted file listing all samples phenotyped
+#' for one or all traits in a dataset.
+#'
+#' @export
+#'
+#' @param phenotype_data (string)
+#'      File path to a csv file containing one named column of 
+#'      sample IDs and one or more named columns with phenotype
+#'      data.
+#' 
+#' @param id_column (string)
+#'      Text string with the header for the column containing
+#'      sample IDs.
+#' 
+#' @param trait_column (string)
+#'      (default NULL) Text string with the header for the desired
+#'      phenotype, if only processing one. If NULL, all non-ID
+#'      columns in the file will be processed. 
+#' @param output_dir (string)
+#'      The directory in which the Plink-formatted IDs file will be 
+#'      saved.
+#'
+#' @return A list containing (1) the file path to the Plink-formatted 
+#'      IDs file and (2) a vector of phenotyped IDs.
+#
+get_phenotyped_ids <- function(phenotype_data, id_column, output_dir, trait_column = NULL) {
+
+    pheno_dat <- read.csv(phenotype_data)
+
+    if (is.null(trait_column)) {
+    
+        phtyped_ids_file <- file.path(output_dir, 'phtyped_ids_all')
+    
+        write.table(data.frame(fam = 0, id = pheno_dat[[id_column]]), 
+                phtyped_ids_file, sep='\t', row.names=F, col.names=F, quote=F)
+
+        return(list(ids_file = phtyped_ids_file, ids = as.character(pheno_dat[[id_column]])))
+
+    } else {
+    
+        trait <- trait_column
+        phtyped_ids_file <- file.path(output_dir, paste0('phtyped_ids_', trait))
+    
+        trait_dat <- pheno_dat[[trait]]
+        names(trait_dat) <- pheno_dat[[id_column]]
+        trait_dat <- trait_dat[!is.na(trait_dat)]
+        
+        write.table(data.frame(fam = 0, id = names(trait_dat)), 
+                phtyped_ids_file, sep='\t', row.names=F, col.names=F, quote=F)
+
+        return(list(ids_file = phtyped_ids_file, ids = as.character(names(trait_dat))))
+
+        
+    }
+}
+
+
+
+#' Modify a Plink genotype dataset to produce a new Plink dataset
+#' of system files, with option to read data into R
+#'
+#' @export
+#'
+#' @param input_genotypes (string)
+#'      prefix of plink bim, bed, and fam files that will be
+#'      loaded and modified
+#' @param output_dir (string)
+#'      Output directory in which to save the new Plink dataset
+#' @param outfile_prefix (string) 
+#'      (default '') The base file name for new Plink files.
+#'      This will be appended with modifications to the original 
+#'      dataset.
+#' @param samples_to_keep (string) 
+#'      (default NULL) If subsetting samples from the original
+#'      dataset, the path to the file listing all samples desired
+#'      for the new dataset. Must be in Plink .fam format, with 
+#'      one row per sample and two columns: one column of family IDs 
+#'      (or zeros), and one column of individual IDs, as produced
+#'      by get_phenotyped_ids(). Using this option calls the Plink
+#'      option '--keep'.
+#' @param snps_to_keep (string) 
+#'      (default NULL) If subsetting SNP variants from the original
+#'      dataset, the path to the file listing all SNP variants desired
+#'      for the new dataset. Must be formatted with one column of 
+#'      variant IDs, one row per variant, as produced by either 
+#'      sample_snps() or sample_snps_from_plink_files(). Using this 
+#'      option calls the Plink option '--extract'.
+#' @param maf_cutoff (double) 
+#'      (default NULL) The desired minor allele frequency cutoff. All 
+#'      variants with allele frequency in the original dataset below 
+#'      the provided threshold will be excluded from the new dataset.
+#'      Using this option calls the Plink option '--maf'.
+#' @param missing_cutoff (double) 
+#'      (default NULL) The desired missing call rate cutoff. All variants 
+#'      with missing call rates exceeding the provided threshold in the 
+#'      original dataset will be excluded from the new dataset. Using 
+#'      this option calls the Plink option '--geno'.
+#' @param hwe_cutoff (double) 
+#'      (default NULL) The desired cutoff for Hardy-Weinberg exact test 
+#'      P-values. All variants in the original dataset whose P-values 
+#'      following a Hardy-Weinberg equilibrium exact test fall below the 
+#'      provided threshold will be excluded from the new dataset. Using
+#'      this option calls the Plink option '--hwe'.
+#' @param ld_prune (bool) 
+#'      (default FALSE) Whether or not to prune variants from the original
+#'      dataset based on linkage disequilibrium with other variants. Using
+#'      this option calls the Plink option '--indep-pairwise'.
+#' @param ld_r2 (double) 
+#'      (default NULL) If LD-pruning, The desired pairwise r^2 threshold.
+#'      For all variant pairs within a desired window size, if the r^2
+#'      of the pairwise correlation between variant allele counts exceeds
+#'      this threshold, only one variant will be kept in the new dataset.
+#' @param ld_window_size (integer) 
+#'      (default NULL) If LD-pruning, the desired window size (in variant 
+#'      count) in which to estimate pairwise linkage disequilibrium.
+#' @param ld_step_size (integer) 
+#'      (default NULL) If LD-pruning, the desired step size (in variant 
+#'      count) by which the pruning window will slide before estimating 
+#'      pairwise LD again.
+#' @param snp_directory (string)
+#'      (default NULL) If LD-pruning, the desired directory path in which to
+#'      save pruned.in and pruned.out files
+#' @param return_data (bool) 
+#'      (default TRUE) Whether or not to return the new dataset in the R 
+#'      environment. If TRUE, returns a list containing (1) the file 
+#'      path to the new dataset and (2) the new genotype matrix. If 
+#'      FALSE, returns only the file directory. This option is preferable 
+#'      when producing large datasets that become computationally intractable 
+#'      to process within R.
+#'
+#' @return A list containing (1) the file path to the new dataset and 
+#'      (2) the new genotype matrix.
+#
+make_plink_dataset <- function(input_genotypes,       
+                               output_dir,            
+                               outfile_prefix = '',   
+                               samples_to_keep = NULL,
+                               snps_to_keep = NULL,   
+                               maf_cutoff = NULL,     
+                               missing_cutoff = NULL, 
+                               hwe_cutoff = NULL,     
+                               ld_prune = FALSE,      
+                               ld_r2 = NULL,          
+                               ld_window_size = NULL, 
+                               ld_step_size = NULL,
+                               snp_directory = NULL,   
+                               return_data=TRUE)      
+{
+    
+    # common arguments
+    args <- c('-bfile', input_genotypes, '-make-bed')
+    
+    # set extra arguments based on user input
+    
+    # samples to keep
+    if (!is.null(samples_to_keep)) {
+        n_samples <- length(readLines(samples_to_keep))
+        args <- c(args, '--keep', samples_to_keep)
+        outfile_prefix <- paste0(outfile_prefix, '_n', n_samples)
+    }
+    # minor allele frequency cutoff
+    if (!is.null(maf_cutoff)) {
+        args <- c(args, '--maf', maf_cutoff)
+        outfile_prefix <- paste0(outfile_prefix, '_maf', maf_cutoff)
+    }
+    
+    # genotype missingness cutoff
+    if (!is.null(missing_cutoff)) {
+        args <- c(args, '--geno', missing_cutoff)
+        outfile_prefix <- paste0(outfile_prefix, '_missing', missing_cutoff)
+    }
+    
+    # HWE cutoff
+    if (!is.null(hwe_cutoff)) {
+        args <- c(args, '--hwe', hwe_cutoff)
+        hwe_pval <- -log10(hwe_cutoff)
+        outfile_prefix <- paste0(outfile_prefix, '_hwe', hwe_pval)
+    }
+
+    # SNP sampling
+    if (!is.null(snps_to_keep)) {
+        args <- c(args, '--extract', snps_to_keep)
+        snp_n <- length(readLines(snps_to_keep)) / 1000
+        outfile_prefix <- paste0(outfile_prefix, '_', snp_n, 'k_snps')
+    }
+
+    # LD pruning
+    if (ld_prune) {
+        
+        if( is.null(ld_r2) | is.null(ld_window_size) | is.null(ld_step_size) | is.null(snp_directory)) {
+            stop('Please provide LD-pruning parameters: r^2, window size, step size, and snp directory')
+        }
+        
+        args <- c(args, '--indep-pairwise', ld_window_size, ld_step_size, ld_r2)
+        outfile_prefix <- paste(outfile_prefix, 'ldprune', ld_r2, ld_window_size, ld_step_size, sep='_')
+    }
+    
+    # set plink arguments
+    plink_file_name <- paste0(output_dir, '/', outfile_prefix)
+    args <- c(args, '--out', plink_file_name)
+
+    # print the plink call to the user
+    print(paste('Plink call:', plink2, paste(args, collapse=' ')))
+
+    # run plink
+    system2(plink2, args)
+
+    # if LD-pruning, create the final dataset using only SNPs in linkage equilibrium
+    if (ld_prune) {
+
+        # reset arguments to read in the file that was just produced
+        args <- c('-bfile', plink_file_name, '-make-bed')
+
+        snps_to_keep <- paste0(plink_file_name,'.prune.in')
+        snp_n <- length(readLines(snps_to_keep))
+        ld_outfile_prefix <- paste0(outfile_prefix, '_n', snp_n, '_nonLD_snps')
+        ld_plink_file_name <- file.path(output_dir, ld_outfile_prefix)
+
+        args <- c(args, '--extract', snps_to_keep, '--out', ld_plink_file_name)
+
+        # print the plink call to the user
+        print(paste('Plink call:', plink2, paste(args, collapse=' ')))
+
+        # run plink
+        system2(plink2, args)
+
+        # remove the intermediate plink files
+        system2('rm', args=c(paste0(plink_file_name,'bed'), 
+            paste0(plink_file_name,'.bim'), paste0(plink_file_name,'.fam')))
+        
+        # move LD-pruned SNP files to SNP directory
+        system2('mv', args=c('*.prune.*', snp_directory))
+
+        # reset the plink file name to output to the R console
+        plink_file_name <- ld_plink_file_name
+    }
+    
+    if (return_data){
+    
+        # read in plink genotypes and replace NA values
+        plink_dat <- load_and_prepare_plink_data(plink_file_name)
+        out <- list(geno_file = plink_file_name, geno = plink_dat)
+
+    } else {
+        out <- list(geno_file = plink_file_name, geno = NULL)
+    }
+    
+    return(out)
+}
+
+
+#' Identify the set of SNP variants common to both the training
+#' and test datasets
+#'
+#' @export
+#'
+#' @param train_genotypes (string)
+#'      The file path/prefix for the training Plink dataset.
+#' 
+#' @param test_genotypes (string)
+#'      The file path/prefix for the test Plink dataset.
+#'
+#' @return A vector of all SNP variants found in both datasets.
+#
+get_common_snpset <- function(train_genotypes, test_genotypes) {
+
+    # read in snp sets
+    all_train_snps <- genio::read_bim(paste0(train_genotypes, '.bim'))
+    all_train_snps <- all_train_snps$id
+    all_test_snps <- genio::read_bim(paste0(test_genotypes, '.bim'))
+    all_test_snps <- all_test_snps$id
+    
+    # save all snps common to train/test sets from which to sample a common set of snps
+    all_snps <- intersect(all_test_snps, all_train_snps)
+    
+    return(all_snps)
+}
+
+
+#' Produce one or multiple sets of SNPs randomly sampled
+#' from an input SNP set
+#'
+#' @export
+#'
+#' @param input_snps (character)
+#'      A vector of SNP variant names from which to sample. Names must be
+#'      in format 'chromosome:position', e.g. 1:2456462
+#' 
+#' @param keep (int)
+#'      (default 50000) The number of SNPs to keep
+#'
+#' @param iterations (int)
+#'      (default 1) The number of random samples to produce      
+#'
+#' @param save_file (bool)
+#'      (default FALSE) Whether or not to save the SNP sample(s) to file(s)
+#'
+#' @param output_dir (character)
+#'      The output directory in which to save the SNP sample(s)
+#'
+#' @return A list of length 'iterations' with multiple random SNP samples
+#
+sample_snps <- function(input_snps,
+                        keep = 50000,
+                        iterations = 1,
+                        save_file = FALSE,
+                        output_dir = NULL){
+    
+    # ensure inputs/outputs are provided if files are desired
+    if (save_file) {
+        if (is.null(output_dir)){
+            stop('Include an output directory in which to save your file(s)')
+        }
+    }
+    
+    # list to store SNP samples
+    snp_list <- list()
+    
+    n_k <- paste0(keep/1000,'k')
+    max_i_figs <- nchar(iterations)
+
+    for (i in 1:iterations){
+                
+        # sample SNPs, save SNPs to a dataframe
+        use_snps <- sample(input_snps, keep)
+        use_snps <- strsplit(use_snps,':')
+        chr <- sapply(use_snps, function(x) x[1])
+        pos <- sapply(use_snps, function(x) x[2])
+        snp_df <- data.frame(cbind(chr,pos))
+        snp_df$pos <- as.numeric(snp_df$pos)
+        extra_chrs <- c('MT', 'X', 'Y')
+        snp_num <- snp_df[!snp_df$chr %in% extra_chrs,]
+        snp_char <- snp_df[snp_df$chr %in% extra_chrs,]
+        snp_num$chr <- as.numeric(snp_num$chr)
+        snp_char$chr <- as.character(snp_char$chr)
+        snp_num <- snp_num[order(snp_num$chr, snp_num$pos),]
+        snp_char <- snp_char[order(snp_char$chr, snp_char$pos),]
+        snp_df <- rbind(snp_num, snp_char)
+        use_snps <- paste0(snp_df$chr, ':', snp_df$pos)
+
+        snp_list[[i]] <- use_snps
+    
+        if (save_file){
+            
+            i_figs <- nchar(i)
+            rep_0s <- paste0(rep(0, max_i_figs - i_figs),collapse='')
+            write.table(use_snps, paste0(output_dir, '/snpset_', n_k, '_random_', rep_0s, i), 
+                        quote=F, row.names=F, col.names=F)    
+        }
+
+    }
+
+    return(snp_list)          
+}
+
+
+#' Produce one or multiple sets of SNPs randomly sampled from an input
+#' SNP set read in from Plink files, then use the new sample(s) to produce
+#' a new Plink dataset(s)
+#'
+#' @export
+#'
+#' @param input_genotypes (character)
+#'      The path/prefix of Plink files from which to sample SNPs
+#' 
+#' @param snp_directory (character)
+#'      The directory storing 1 or more text files listing sampled SNPS,
+#'      as produced by sample_snps()
+#'
+#' @param output_dir (character)
+#'      The output directory in which to save the new Plink dataset(s)  
+#'
+#' @param n_samples (int)
+#'      (default 1) The number of random samples and Plink datasets 
+#'      to produce
+#'
+#' @param keep_files (bool)
+#'      (default TRUE) Whether or not to keep Plink genotype files.
+#'      Use FALSE if only SNP files are desired
+#'
+#' @return A list of length n_samples of genotype datasets as produced
+#'          by make_plink_dataset()
+#
+sample_snps_from_plink_files <- function(input_genotypes,   # genotype data in plink format: base filename
+                                         snp_directory,     # directory of 1 or more txt files listing sampled SNPs
+                                         output_dir,        # directory to hold the new datasets
+                                         n_samples = 1,     # number of SNP samples to extract & datasets to produce
+                                         keep_files = TRUE) # T: keep plink files; F: delete plink files
+{
+    input_filename <- basename(input_genotypes)
+    all_samples <- list.files(snp_directory, full.names=T)
+    geno_datasets <- list()
+    
+    for (i in 1:n_samples) {
+        
+        snp_sample <- all_samples[i]
+        
+        geno_datasets[[i]] <- make_plink_dataset(
+            input_genotypes = input_genotypes,
+            output_dir = output_dir,             # directory for the new dataset
+            outfile_prefix = paste0(input_filename, '_', i),    # base filename for the new dataset
+            snps_to_keep = snp_sample,    # text file of snps to keep from the input dataset
+            return_data=TRUE)       # T: return the dataset in R; F: just produce the data files
+
+        # delete unwanted files
+        if (!keep_files) {
+            
+            system_call <- paste0('rm', ' ', geno_datasets[[i]]$geno_file, '.*')
+            system(system_call)
+            print(paste('System call:', system_call))
+        }
+    }
+    
+    return(geno_datasets)
+}
+
+
+#' Align genotype and phenotype datasets for prediction. Keeps only
+#' samples that are shared between datasets, maintaining the same order
+#' of sample IDs in both
+#'
+#' @export
+#'
+#' @param genotypes (list)
+#'      A genotype dataset as produced by make_plink_dataset() or
+#'      sample_snps_from_plink_files(): a list with elements $geno_file
+#'      (the path/prefix to the Plink dataset) and $geno (a genotype matrix
+#'      of n samples x q variants)
+#' 
+#' @param phenotypes (numeric)
+#'      A named numeric vector of phenotype measurements
+#' 
+#' @param trait (character)
+#'      The name of the trait being analyzed
+#'
+#' @return A list of (1) the trait name, (2) all sample IDs shared between
+#'      datasets, (3) the path/prefix for the Plink dataset used in
+#'      alignment, (4) the aligned genotype matrix, and (5) the aligned
+#'      phenotype data
+#
+align_data <- function(genotypes,
+                       phenotypes,
+                       trait)
+{
+    
+    geno_file <- genotypes$geno_file
+    geno <- genotypes$geno
+        
+    # align genotype and phenotype data for prediction
+    rat_ids <- intersect(rownames(geno), rownames(phenotypes))
+    geno <- geno[rat_ids,]
+    trait_dat <- phenotypes[rat_ids,]
+    names(trait_dat) <- rat_ids
+
+    out <- list(trait = trait, ids = rat_ids, geno_file = geno_file, geno = geno, pheno = trait_dat)
+    return(out)
+} 
+
+
+#' Format trait observations and predictions into a dataframe
+#'
+#' @export
+#'
+#' @param lst (list)
+#'      A list with elements $obs (named trait observations) and $pred (trait
+#'      predictions in the same order as $obs). Each element may itself be a 
+#'      list of length k sets of observations or predictions, such as output
+#'      by kfold_cv()
+#' 
+#' @return A dataframe of all IDs, observations, and predictions, concatenated
+#'      across all k folds
+#
+format_obs_pred <- function(lst) # list with trait observations and predictions
+{
+
+    k <- numeric()
+    rfids <- character()
+    obs <- numeric()
+    pred <- numeric()
+    
+    for (i in seq_along(lst)) {
+    
+        k <- c(k, rep(i, length(lst[[i]]$obs)))
+        rfids <- c(rfids, names(lst[[i]]$obs))
+        obs <- c(obs, lst[[i]]$obs)
+        pred <- c(pred, lst[[i]]$pred)
+    
+    }
+    
+    df <- data.frame(kfold = k, rfid = rfids, obs = obs, pred = pred)
+    return(df)
+        
+}
+
+
+#' Given a set of trait predictions, get the rank order and the z-score
+#' of each
+#'
+#' @export
+#'
+#' @param predictions (numeric)
+#'      A named vector of trait predictions
+#' 
+#' @param trait (character)
+#'      The name of the trait to be analyzed
+#' 
+#' #' @param output_dir (character)
+#'      (default NULL) The directory in which to save a dataframe of 
+#'      trait predictions, prediction ranks, and z-scores, if desired
+#' 
+#' @return A list containing (1) the trait analyzed, (2) all prediction ranks,
+#'      and (3) all prediction z-scores
+#
+get_ranks_zscores <- function(predictions, # named vector of trait predictions
+                      trait,       # character string
+                      output_dir=NULL) # character directory path
+{
+
+    pred_rank <- rank(predictions)
+    pred_zscore <- zscore(predictions)
+    
+    if (!is.null(output_dir)){
+        out_df <- data.frame(rfid = names(predictions), pred = predictions, 
+                             rank = pred_rank, zscore = pred_zscore)
+        names(out_df) <- c('rfid', trait, paste0(trait, '_rank'), paste0(trait, '_zscore'))
+        write.csv(out_df, paste0(output_dir, '/', trait, '_predictions.csv'),
+                             row.names=F, quote=F)
+
+    }
+                       
+    return(list(trait = trait, rank = pred_rank, z_score = pred_zscore))    
+
+}
+
+
+#' Plot the results of a Plink PCA to pdf files
+#'
+#' @export
+#'
+#' @param plink_pca (list)
+#'      A list containing elements $trait (the trait to analyze) and $pca_file
+#'      (the path to Plink .eigenvec PCA results), as output by 
+#'      pca_plink_genotypes()
+#' 
+#' @param train_genotypes (character)
+#'      A genotype matrix from the training set
+#' 
+#' #' @param test_genotypes (character)
+#'      A genotype matrix from the test set
+#' 
+#' #' @param output_dir (character)
+#'      The directory in which to save pdf plots 
+#' 
+#' @return None. Plots are saved to files, without output into the R 
+#'      environment
+#
+plot_pca <- function(plink_pca, 
+                     train_genotypes, 
+                     test_genotypes,
+                     output_dir)
+{
+
+    # read PCA results
+    pca_df <- read.table(paste0(plink_pca$pca_file, '.eigenvec'), header=F)
+    eigenval <- read.table(paste0(plink_pca$pca_file, '.eigenval'), header=F)$V1
+    names(eigenval) <- paste0('pc', seq(1,10))
+    names(pca_df) <- c('fid', 'rfid', paste0('pc', seq(1,10)))
+    train_rfids <- rownames(train_genotypes$geno)
+    test_rfids <- rownames(test_genotypes$geno)
+    pca_df$dataset <- sapply(pca_df$rfid, function(x) 
+        if  (x %in% train_rfids) {
+            return('train')
+        } else if (x %in% test_rfids) {
+            return('test')
+        } else {
+            return(NA)
+        }
+        )
+
+    # plot PCA results
+    pdf(paste0(output_dir, '/', plink_pca$trait, '_gtypes_pc1_vs_pc2.pdf'), 6,6)
+    plot(pca_df$pc1,pca_df$pc2, col=0,
+         main=paste(plink_pca$trait, 'Genotype Data: PC1 vs. PC2'),
+         xlab=paste0('PC1  (', round(eigenval['pc1']/sum(eigenval)*100,2),' %)'),
+         ylab=paste0('PC2  (', round(eigenval['pc2']/sum(eigenval)*100,2),' %)'))
+    points(pca_df[pca_df$dataset=='train',]$pc1,pca_df[pca_df$dataset=='train',]$pc2, col=alpha('blue',0.5), cex=1.2, pch=16)
+    points(pca_df[pca_df$dataset=='train',]$pc1,pca_df[pca_df$dataset=='train',]$pc2, lwd=1.5, cex=1.2)
+    points(pca_df[pca_df$dataset=='test',]$pc1,pca_df[pca_df$dataset=='test',]$pc2, col=alpha('red',0.5), cex=1.2, pch=16)
+    points(pca_df[pca_df$dataset=='test',]$pc1,pca_df[pca_df$dataset=='test',]$pc2, lwd=1.5, cex=1.2)
+    legend('topleft',inset=c(0.02,0.02), title='Dataset',legend=c('Train','Test'),bg='white',
+           pch=16,cex=1.2,col=c(alpha('blue',0.5),alpha('red',0.5)))
+    legend('topleft',inset=c(0.02,0.02), title='',legend=c('Train','Test'),bty='n',pch=1,pt.lwd=1.5,cex=1.2)
+    dev.off()
+
+    pdf(paste0(output_dir, '/', plink_pca$trait, '_gtypes_pc1_vs_pc3.pdf'), 6,6)
+    plot(pca_df$pc1,pca_df$pc3, col=0,
+         main=paste(plink_pca$trait, 'Genotype Data: PC1 vs. PC3'),
+         xlab=paste0('PC1  (', round(eigenval['pc1']/sum(eigenval)*100,2),' %)'),
+         ylab=paste0('PC3  (', round(eigenval['pc3']/sum(eigenval)*100,2),' %)'))
+    points(pca_df[pca_df$dataset=='train',]$pc1,pca_df[pca_df$dataset=='train',]$pc3, col=alpha('blue',0.5), cex=1.2, pch=16)
+    points(pca_df[pca_df$dataset=='train',]$pc1,pca_df[pca_df$dataset=='train',]$pc3, lwd=1.5, cex=1.2)
+    points(pca_df[pca_df$dataset=='test',]$pc1,pca_df[pca_df$dataset=='test',]$pc3, col=alpha('red',0.5), cex=1.2, pch=16)
+    points(pca_df[pca_df$dataset=='test',]$pc1,pca_df[pca_df$dataset=='test',]$pc3, lwd=1.5, cex=1.2)
+    legend('topleft',inset=c(0.02,0.02), title='Dataset',legend=c('Train','Test'),bg='white',
+           pch=16,cex=1.2,col=c(alpha('blue',0.5),alpha('red',0.5)))
+    legend('topleft',inset=c(0.02,0.02), title='',legend=c('Train','Test'),bty='n',pch=1,pt.lwd=1.5,cex=1.2)
+    dev.off()
+
+    pdf(paste0(output_dir, '/', plink_pca$trait, '_gtypes_pc2_vs_pc3.pdf'), 6,6)
+    plot(pca_df$pc2,pca_df$pc3, col=0,
+         main=paste(plink_pca$trait, 'Genotype Data: PC2 vs. PC3'),
+         xlab=paste0('PC2  (', round(eigenval['pc2']/sum(eigenval)*100,2),' %)'),
+         ylab=paste0('PC3  (', round(eigenval['pc3']/sum(eigenval)*100,2),' %)'))
+    points(pca_df[pca_df$dataset=='train',]$pc2,pca_df[pca_df$dataset=='train',]$pc3, col=alpha('blue',0.5), cex=1.2, pch=16)
+    points(pca_df[pca_df$dataset=='train',]$pc2,pca_df[pca_df$dataset=='train',]$pc3, lwd=1.5, cex=1.2)
+    points(pca_df[pca_df$dataset=='test',]$pc2,pca_df[pca_df$dataset=='test',]$pc3, col=alpha('red',0.5), cex=1.2, pch=16)
+    points(pca_df[pca_df$dataset=='test',]$pc2,pca_df[pca_df$dataset=='test',]$pc3, lwd=1.5, cex=1.2)
+    legend('topleft',inset=c(0.02,0.02), title='Dataset',legend=c('Train','Test'),bg='white',
+           pch=16,cex=1.2,col=c(alpha('blue',0.5),alpha('red',0.5)))
+    legend('topleft',inset=c(0.02,0.02), title='',legend=c('Train','Test'),bty='n',pch=1,pt.lwd=1.5,cex=1.2)
+    dev.off()
+                         
+}
+
+
+#' Given results from one k-fold cross-validation, identify the
+#' fold with the best model performance.
+#'
+#' @export
+#'
+#' @param cv_results (list)
+#'      A list with results from one k-fold cross-validations, as output by 
+#'      kfold_cv(). 
+#' 
+#' @param metric (character)
+#'      The desired statistic to use to identify the best model fit. The 'best'
+#'      fold is defined as that whose performance maximizes this metric.
+#' 
+#' @return The integer value identifying the 'test' list element (i.e., the 
+#'      fitted fold) with the best model performance, per the desired 
+#'      performance metric.
+#
+best_fold <- function(cv_results,
+                     metric=c('pearson','spearman','r_sq')) {
+
+    test_results <- cv_results$test
+    perf <- c()
+    
+    for (k in 1:length(test_results)) {
+        if (metric == 'pearson') {
+            perf <- c(perf, test_results[[k]]$pearson_corr)    
+        } else if (metric == 'spearman') {
+            perf <- c(perf, test_results[[k]]$spearman_corr)    
+        } else if (metric == 'r_sq') {
+            perf <- c(perf, test_results[[k]]$r_sq)                
+        }
+    }
+    
+    return(which.max(perf))
+}
+
+
+#' Given results from multiple k-fold cross-validations, identify the
+#' model with the best mean cross-validation performance.
+#'
+#' @export
+#'
+#' @param crossval_list (list)
+#'      A list with results from multiple k-fold cross-validations. Each
+#'      element must be a list as produced by kfold_cv() tested on
+#'      a different genomic dataset 
+#' 
+#' @return The integer value identifying the list element with the best
+#'      mean cross-validation performance
+#
+best_kfold_mod <- function(crossval_list)
+{
+    if (length(crossval_list) == 1)
+        stop('Must include results from >1 cross-validation run')
+    
+    mean_cv_perf <- numeric()
+    
+    # get the mean pearson correlation coef for each CV fold
+    for (i in 1:length(crossval_list)){
+    
+        cv <- crossval_list[[i]]
+        cv_test <- cv$test
+        fold_r <- numeric()
+
+        for (j in 1:length(cv_test)){
+            
+            fold_r <- c(fold_r, cv_test[[j]]$pearson_corr)
+        }
+        
+        mean_r <- mean(fold_r)
+        mean_cv_perf <- c(mean_cv_perf, mean_r)
+    }
+    
+    # identify the fold with the best performance
+    top_mod <- which.max(mean_cv_perf)
+    
+    return(top_mod)
+}
+
+
+#' Save the results from one k-fold cross-validation to a csv.
+#'
+#' @export
+#'
+#' @param cv_results (list)
+#'      A list with results from one k-fold cross-validations, as output by 
+#'      kfold_cv(). 
+#' #' @param output_dir (character)
+#'      The directory in which to save pdf plots 
+#' 
+#' @return None. Results are saved to file
+#
+save_cv_results <- function(cv_results, output_dir) {
+    
+    test_results <- cv_results$test
+    n_folds <- length(test_results)
+    
+    obs <- c()
+    pred <- c()
+    r_sq <- c()
+    r <- c()
+    rho <- c()
+    fold <- c()
+
+    for (k in 1:length(test_results)) {
+        out <- cv_results$test[[k]]
+        obs <- c(obs, out$obs)
+        pred <- c(pred, out$pred)
+        fold <- c(fold, rep(k, length(out$obs)))
+        r_sq <- c(r_sq, rep(out$r_sq, length(out$obs)))
+        r <- c(r, rep(out$pearson_corr, length(out$obs)))
+        rho <- c(rho, rep(out$spearman_corr, length(out$obs)))
+    }
+
+    df1 <- data.frame(
+        trait = rep(trait, length(obs)),
+        fold = fold,
+        obs = obs,
+        pred = pred,
+        r_sq = r_sq,
+        r = r,
+        rho = rho)
+
+    df2 <- data.frame(
+        trait = unique(df1$trait),
+        fold = unique(df1$fold),
+        r_sq = unique(df1$r_sq),
+        r = unique(df1$r),
+        rho = unique(df1$rho))
+
+    timestamp <- format(Sys.time(), '%Y%m%d-%H:%M:%S')
+    write.csv(df1, file.path(output_dir, paste0(trait, '_', n_folds, 'fold_cv_', timestamp, '_results.csv')),
+        row.names=F, quote=F, na='')
+    write.csv(df2, file.path(output_dir, paste0(trait, '_', n_folds, 'fold_cv_', timestamp, '_summary.csv')),
+        row.names=F, quote=F, na='')
+}
+
+#' Plot the results of a k-fold cross validation to files
+#'
+#' @export
+#'
+#' @param kfold_results (list)
+#'      A list with results from a k-fold cross-validation, as produced
+#'      by kfold_cv(). Must contain elements $trait (the trait name) and
+#'      $test (a list of k sets oftrait observations, predictions, and 
+#'      performance metrics from a k-fold cross-validation)
+#' 
+#' @param output_dir (string)
+#'      The directory in which the pdf files will be saved
+#' 
+#' @return None. Plots are saved to files, without output into the R 
+#'      environment
+#
+plot_kfold <- function(kfold_results, output_dir) {
+
+    test_dat <- kfold_results$test
+    num_folds <- length(test_dat)
+    trait <- kfold_results$trait
+    test_df <- format_obs_pred(test_dat)
+    lm_slope <- numeric()
+    lms <- list()
+    
+    # plot 1: zoomed to fit
+    pdf(paste0(output_dir, '/', trait, '_', num_folds, 'fold_crossval_zoomed.pdf'), 6, 6)
+
+    # empty plot
+    with(test_df, plot(obs, pred, col=0,
+        xlab='Observed', ylab='Predicted'))
+    title(main = paste0(trait, ' ', num_folds, '-fold cross-validation'),
+         line = 2.2)
+    plot_cols <- viridis(num_folds, 1, 0, 0.6, 1)
+    
+    # plot points
+    for (i in 1:num_folds){
+        
+        plot_dat <- test_dat[[i]]
+        plot_df <- test_df[test_df$kfold==i,]
+        plot_col <- 'black' #viridis(0.1,0.1,0.1) # make this relate to i somehow
+        plot_col <- plot_cols[i]
+        lm <- lm(pred ~ obs, plot_df)
+        lms[[i]] <- lm
+        lm_slope <- c(lm_slope, lm$coef[2])
+        with(plot_df, points(obs, pred, col = plot_col, pch = 16))
+        with(plot_df, points(obs, pred))
+        abline(lm, lwd = 2, col = plot_col)
+    }
+    
+    # plot lines
+    for ( i in 1:length(lms)){
+        abline(lms[[i]], lty=2, col=plot_cols[i])
+    }
+    
+    # legend
+    legend('bottomright', title='Fold', legend=seq.int(1,num_folds), 
+           bg='white', cex=0.8, lty=1, lwd=2, col=plot_cols)
+
+    # margin text: mean performance metrics
+    r_sq <- mean(sapply(test_dat, function(x) x$r_sq))
+    r <- mean(sapply(test_dat, function(x) x$pearson_corr))
+    rho <- mean(sapply(test_dat, function(x) x$spearman_corr))                 
+    r_sq <- paste0('r_sq: ', round(r_sq, 3))
+    r <- paste0('r: ', round(r,3))
+    rho <- paste0("rho: ", round(rho,3))
+    m <- paste0("m: ", round(mean(lm_slope),3))
+    str <- paste('mean' r_sq, r, rho, m, sep = "  |  ")
+    # abline(lm, lwd =2)
+    mtext(str,side=3,adj=0.05,line=0.2,cex=1.1)
+
+    dev.off()
+                       
+
+    # plot 2: axes scaled 1:1
+    trait_min <- min(c(test_df$obs, test_df$pred))
+    trait_max <- max(c(test_df$obs, test_df$pred))
+
+    pdf(paste0(output_dir, '/', trait, '_', num_folds, 'fold_crossval_scaled.pdf'), 6, 6)
+
+    with(test_df, plot(obs, pred, col=0, xlim=c(trait_min, trait_max), ylim=c(trait_min, trait_max),
+        xlab='Observed', ylab='Predicted'))
+    title(main = paste0(trait, ' ', num_folds, '-fold cross-validation'),
+         line = 2.2)
+    plot_cols <- viridis(num_folds, 1, 0, 0.6, 1)
+    
+    # plot points
+    for (i in 1:num_folds){
+        
+        plot_dat <- test_dat[[i]]
+        plot_df <- test_df[test_df$kfold==i,]
+        plot_col <- 'black' #viridis(0.1,0.1,0.1) # make this relate to i somehow
+        plot_col <- plot_cols[i]
+        lm <- lm(pred ~ obs, plot_df)
+        lms[[i]] <- lm
+        lm_slope <- c(lm_slope, lm$coef[2])
+        with(plot_df, points(obs, pred, col = plot_col, pch = 16))
+        with(plot_df, points(obs, pred))
+        abline(lm, lwd = 2, col = plot_col)
+    }
+    
+    # plot lines
+    for ( i in 1:length(lms)){
+        abline(lms[[i]], lty=2, col=plot_cols[i])
+    }
+    
+    # legend
+    legend('bottomright', title='Fold', legend=seq.int(1,num_folds), 
+           lty=1, lwd=2, col=plot_cols)
+
+    # margin text: mean performance metrics
+    r_sq <- mean(sapply(test_dat, function(x) x$r_sq))
+    r <- mean(sapply(test_dat, function(x) x$pearson_corr))
+    rho <- mean(sapply(test_dat, function(x) x$spearman_corr))                 
+    r_sq <- paste0('r_sq: ', round(r_sq, 3))
+    r <- paste0('r: ', round(r,3))
+    rho <- paste0("rho: ", round(rho,3))
+    m <- paste0("m: ", round(mean(lm_slope),3))
+    str <- paste('mean', r_sq, r, rho, m, sep = "  |  ")
+    # abline(lm, lwd =2)
+    mtext(str,side=3,adj=0.05,line=0.2,cex=1.1)
+
+    dev.off()
+
+}
+
+
+#' Given a directory containing multiple csv files of predictions for 
+#' different traits, merge all files into a single csv of results for
+#' all traits
+#'
+#' @export
+#'
+#' @param directory (character)
+#'      The directory path housing prediction results for multiple traits.
+#'      Within this directory, each individual trait's results must be 
+#'      inside a separate sub-directory identified by the trait name, with
+#'      a csv file named as <trait_name>_predictions.csv (as output by 
+#'      get_ranks_zscores()), e.g.: 
+#'      <directory>/<trait_name>/<trait_name>_predicitons.csv
+#' 
+#' @param traits (list or character)
+#'      Either a list or vector of trait names whose respective trait
+#'      predictions will be merged
+#' 
+#' @param output_dir (character)
+#'      (default NULL) The directory in which the csv of merged trait
+#'      predictions will be saved, if desired.
+#' 
+#' @param basename (character)
+#'      (default NULL) The stem of the filename used for the merged csv
+#'      file, if desired. Final results will be saved to
+#'      <output_dir>/<basename>_merged_predictions.csv
+#' 
+#' @return The dataframe of all merged trait predictions
+#
+# function to merge all trait predictions into one file
+merge_preds <- function(directory, # directory containing trait-named directories
+                        traits,    # list or vector of trait names
+                        output_dir=NULL, # directory to save the file, if desired
+                        basename=NULL)
+{
+
+    list_of_dfs <- list()
+    
+    # read in predictions for each trait
+    for (trait in traits){
+    
+        trait_df <- read.csv(paste0(directory, '/', trait, '/', trait, '_predictions.csv'))
+        list_of_dfs[[trait]] <- trait_df
+    
+    }
+
+    # merge all dataframes
+    all_preds <- Reduce(function(x,y) merge(x, y, all=T), list_of_dfs)
+    
+    if (!is.null(output_dir)){
+        write.csv(all_preds, paste0(output_dir, '/', basename, '_merged_predictions.csv'),
+                  row.names=F, quote=F, na='')
+
+    }
+    return(all_preds)
+                        
+}

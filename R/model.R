@@ -380,7 +380,7 @@ validate_test_preds <- function(phenotypes,
     # goodness-of-fit measures
     rho <- cor(test_pred, phenotypes, method='spearman')
     r <- cor(test_pred, phenotypes, method='pearson')
-    r_sq <- compute_r_sq(test_pred, phenotypes)
+    r_sq <- compute_r_sq(phenotypes, test_pred)
     
     out <- list(obs = phenotypes, pred = test_pred, r_sq = r_sq, pearson_corr = r, spearman_corr = rho)
     return(out)
