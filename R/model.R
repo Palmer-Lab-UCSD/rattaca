@@ -296,6 +296,9 @@ gen_trait_sim_closure <- function(intercept, u, sd_error,
 #'      the intercept of the model
 #'
 #' @return (function)
+#'      The input arguments of closure function is a 
+#'      genotype vector of length q_markers or matrix
+#'      q_markers number of columns
 #
 gen_sim_closure_r_sq <- function(r_sq, genotypes,
                                  var_u=1, intercept=0)
