@@ -280,6 +280,8 @@ zscore <- function(data){
 
 
 #' Perform multiple power analyses on a set of hypothetical assignment groups.
+#' 
+#' @description
 #' Genotypes are sampled into hypothetical assignment (high/low) groups 
 #' according to desired parameters, then used to simulate trait predictions 
 #' under the given model for power analyses under a combination of parameters.
@@ -307,6 +309,14 @@ zscore <- function(data){
 #'      and lowest 10% of predictions, and 20 will compare the highest 20 and 
 #'      lowest 20 predictions.
 #' 
+#' @param low_ids (character)
+#'      (default NULL) A vector of RFIDs that have already been assigned to a
+#'      'low' group based on trait predictions.
+#' 
+#' @param high_ids character)
+#'      (default NULL) A vector of RFIDs that have already been assigned to a
+#'      'high' group based on trait predictions.
+#' 
 #' @param alpha (numeric)
 #'      (default 0.05) The desired alpha value(s) (significance cutoff(s)) to 
 #'      use when determining statistical power to compare assigned groups.
@@ -321,65 +331,99 @@ zscore <- function(data){
 #' @return A dataframe with one row per combination of desired group sample 
 #'      size and alpha, and corresponding statistical power.
 #
+# function to do a power analysis on different theoretical assigned samples
 test_power <- function(
     trait,
-    genotypes,   
-    predictions, 
-    fitted_mod,  
-    group_size=c(0.05, 0.1, 0.25, 0.33), 
+    genotypes,   # geno matrix of all predicted samples
+    predictions, # named vector of trait predictions
+    fitted_mod,  # a fitted model (as output by fit()) 
+    group_size=c(0.05, 0.1, 0.25, 0.33), # fraction or sample count for assignment group size
+    low_ids=NULL,  # vector of IDs already assigned to the low sample
+    high_ids=NULL, # vector of IDs already assigned to the high sample
     alpha=0.05,
     reps=100,
     outdir=NULL)
 {
     preds <- sort(predictions)
-
-    percent <- c()
+    sample_pct <- c()
     sample_n <- c()
-    # produce genotype samples to compare
-    for (group_sample in group_size) {
+    sample_type <- c()
+    power <- c() 
 
-        # if groups are input as a fraction, calculate sample sizes
-        if (group_sample < 1) {
-            pct <- group_sample
-            group_n <- ceiling(length(preds)*group_sample)
-        } else { 
-            pct <- ceiling(group_sample/length(preds))
-            group_n <- group_sample
-        }
+    # create an LMM simulation closure for the fitted model
+    sim <- gen_trait_sim_closure(
+        intercept = fitted_mod$beta,
+        u = fitted_mod$u,
+        intercept_se = fitted_mod$beta.SE,
+        u_se = fitted_mod$u.SE,
+        sd_error = sqrt(fitted_mod$Ve))
+
+    # read in assigned IDs
+    if (!is.null(low_ids) & !is.null(high_ids)) {
         
-        low_rfids <- names(preds)[1:group_n]
-        high_rfids <- names(preds)[(length(preds)-(group_n+1)):length(preds)]
-
-        geno_low <- genotypes[low_rfids,]
-        geno_high <- genotypes[high_rfids,]
-
-        # create an LMM simulation closure for the fitted model
-        sim <- gen_trait_sim_closure(
-            intercept = fitted_mod$beta,
-            u = fitted_mod$u,
-            intercept_se = fitted_mod$beta.SE,
-            u_se = fitted_mod$u.SE,
-            sd_error = sqrt(fitted_mod$Ve))
-
-        power <- c()
-        sig_cutoff <- c()
-        for (sig in alpha) {
-            # power analysis on the combination of group size, alpha, 
-            pwr <- power_analysis(geno_low, geno_high, sim, sig=sig, m_power_reps=reps) 
-            power <- c(power, pwr)
-            sig_cutoff <- c(sig_cutoff, sig)
-        }
-        percent <- c(percent, rep(pct, length(power)))
-        sample_n <- c(sample_n, rep(group_n, length(power)))
+        n_low <- length(low_ids)
+        n_high <- length(high_ids)
+        n_assigned <- max(c(n_low, n_high))
+        group_size <- c(group_size, n_assigned)
+        names(group_size)[1:length(group_size)] <- 'hypothetical'
+        names(group_size)[length(group_size)] <- 'assigned'
     }
-    
-    out_df <- data.frame(
-        pct_cutoff = percent,
-        group_n = sample_n,
-        alpha = sig_cutoff,
-        power = power)
 
-    write.csv(out_df, file.path(outdir, paste0(trait, '_test_power.csv')),
+    for (group_sample in group_size) {
+    
+    # if groups are input as a fraction, calculate sample sizes
+    if (group_sample < 1) {
+        pct <- group_sample
+        group_n <- ceiling(length(preds)*group_sample)
+    } else { 
+        pct <- round(group_sample/length(preds),3)
+        group_n <- group_sample
+    }
+
+    # produce high & low samples    
+    low_rfids <- names(preds)[1:group_n]
+    high_rfids <- names(preds)[(length(preds)-group_n):length(preds)]
+    geno_low <- genotypes[low_rfids,]
+    geno_high <- genotypes[high_rfids,]
+
+    for (sig in alpha) {
+        # power analysis on the combination of group size, alpha, 
+        pwr <- power_analysis(geno_low = geno_low, 
+                              geno_high = geno_high, 
+                              sim = sim, 
+                              sig=sig, 
+                              m_power_reps=reps) 
+        power <- c(power, pwr)
+    }
+
+    sample_pct <- c(sample_pct, rep(pct, length(alpha)))
+    sample_n <- c(sample_n, rep(group_n, length(alpha)))
+    sig_cutoff <- rep(alpha, length(group_size))
+}
+
+    if (is.null(names(group_size))) {
+        out_df <- data.frame(
+            pct_cutoff = sample_pct,
+            group_n = sample_n,
+            alpha = sig_cutoff,
+            power = power)
+        out_df <- out_df[with(out_df, order(group_n, alpha)), ]
+    } else {
+        out_df <- data.frame(
+            sample_type = rep(names(group_size), each = length(alpha)),
+            pct_cutoff = sample_pct,
+            group_n = sample_n,
+            alpha = sig_cutoff,
+            power = power)
+        out_df <- out_df[with(out_df, order(group_n, sample_type, alpha)), ]
+    }
+
+
+    if (!is.null(outdir)) {
+        write.csv(out_df, file.path(outdir, paste0(trait, '_test_power.csv')),
               row.names=F, quote=F, na='')
+    }
+
     return(out_df)
+
 }
