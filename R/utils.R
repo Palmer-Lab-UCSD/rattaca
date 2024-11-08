@@ -441,7 +441,7 @@ make_plink_dataset <- function(input_genotypes,
             paste0(plink_file_name,'.bim'), paste0(plink_file_name,'.fam')))
         
         # move LD-pruned SNP files to SNP directory
-        system2('mv', args=c('*.prune.*', snp_directory))
+        system2('mv', args=c(paste0(ld_plink_file_name),'.prune.in', snp_directory))
 
         # reset the plink file name to output to the R console
         plink_file_name <- ld_plink_file_name
@@ -627,9 +627,11 @@ sample_snps_from_plink_files <- function(input_genotypes,   # genotype data in p
 }
 
 
-#' Align genotype and phenotype datasets for prediction. Keeps only
-#' samples that are shared between datasets, maintaining the same order
-#' of sample IDs in both
+#' Align genotype and phenotype datasets for prediction. 
+#' 
+#' @description 
+#' Keeps only samples that are shared between datasets, maintaining the same 
+#' order of sample IDs in both
 #'
 #' @export
 #'
