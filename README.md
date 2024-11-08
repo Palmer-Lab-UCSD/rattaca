@@ -2,58 +2,66 @@
 
 :construction: Under Construction :construction:
 
-The RATTACA method aims at predicting rat
-traits from low coverage sequencing measurements.
-Using these trait predictions, animals with predicted
-extreme phenotypes will be selected for study.  Here
-we provide helper tools for fitting a Linear
-Mixed Model (LMM) with the 'rrBLUP' package to
-data, assess the LMM performance under the
-stated goals of the RATTACA project, and scripts to
-integrate in bioinformatic pipelines.
+The RATTACA method uses genomic prediction to predict rat phenotypes from 
+SNP genotypes, then uses these trait predictions to assign for study animals 
+with predicted extreme phenotypes. This package provides helper tools for 
+fitting linear mixed models (LMM) for prediction, and assessing LMM performance 
+under the goals of the RATTACA project. 
+
+Predictions are calculated by estimating marker effects using the 'RR-BLUP' 
+method of the [rrBLUP package](https://cran.r-project.org/web/packages/rrBLUP/index.html). 
+The primary output of this package - a set of phenotype predictions - can then 
+be used to assign rats using the [RATTACA assignment package](https://github.com/Palmer-Lab-UCSD/rattaca_assignment).
 
 
 ## Installation
 
-First you'll need to make sure that:
+RATTACA predictions are conducted in `R`. You will need to install R >= 4.1 
+with the following `R` packages:
 
-* R >= 4.1 is installed
+* genio (>=1.1.2) to read/write PLINK genotype data
+* rrBLUP (>=4.6.2) to fit prediction models
+* roxygen2 (>=2.7.0) (optional: to build package documentaion)
+* viridis (>=0.6.2) (for optional plotting)
+* scales (>=1.2.0) (for optional plotting)
 
-as well as the following `R` packages
+First, simply clone the repository:
+```bash
+git clone git@github.com:Palmer-Lab-UCSD/rattaca.git
+```
 
-* genio (>=1.1.2)
-* rrBLUP (>=4.6.2)
+Optionally, to build the package documentation (which allows dynamic generation
+of RATTACA documentation in `R`). Assuming the cloned repository is in the 
+current working directory, start `R` and from the `R` command line:
 
+```R
+library(roxygen2)
+roxygenize()
+```
 
-### Cloning the repository
-
-First, simply clone the repository.  Assuming that
-the cloned repository is in the current working
-directory
+Then install from the command line. Assuming the cloned repository is in the 
+current working directory:
 
 ```bash
 R CMD INSTALL [-l library_path] rattaca
 ```
 
-Or if you prefer to install from R, you'll need to
-build the package.  This can be done from the
-command line by:
+Alternatively, to install from within R, you'll first need to
+build the package. First, from the command line:
 
 ```bash
 R CMD build rattaca
 ```
 
-which will generate a tar ball
-`rattaca-<version_number>.tar.gz` in the
+... which will generate a tar ball `rattaca-<version_number>.tar.gz` in the
 current working directory.  Then start `R`
-and in the `R` command line
+and in the `R` command line:
 
 ```R
 install.packages('rattaca-<version_number>.tar.gz', repos=NULL)
 ```
 
-where we have set `repos` to `NULL` as we are
-installing from a local package.
+... ensuring `repos` is set to `NULL` to install from a local package.
 
 
 ### Download a tagged version
@@ -62,11 +70,11 @@ On this GitHub page, on the right-hand side, under
 `Releases` select `tags`.  Choose a tagged version,
 and click on the compressed source code link for
 `.tar.gz`.  Given that this downloaded in the
-`Downloads` folder
+`Downloads` folder, you can install or build as above:
 
 ```bash
 cd ~/Downloads
-R CMD INSTALL [-l library_path] rattaca-<version_number>.tar.gz
+R CMD INSTALL [-l library_path] rattaca-<tagged_version_number>.tar.gz
 ```
 
 ## Package Features
