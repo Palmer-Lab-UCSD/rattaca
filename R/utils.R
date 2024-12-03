@@ -1221,7 +1221,6 @@ merge_preds <- function(directory, # directory containing trait-named directorie
 #' 
 #' @return A vector of group assignments in the same order as col.
 #
-
 trait_groups <- function(preds, col, n_groups=2) {
     group_col <- paste0(col, '_', n_groups, 'group')
     trait_quantiles <- quantile(preds[[col]], probs = seq(0, 1, by = 1/n_groups))
@@ -1233,4 +1232,75 @@ trait_groups <- function(preds, col, n_groups=2) {
         groups <- cut(preds[[col]], breaks = trait_quantiles, labels=F, include.lowest=T)
     }
     return(groups)
+}
+
+
+#' Split a phenotypic dataset into train and test samples, and produce files
+#' of RFIDs for either sample. 
+#'
+#' @export
+#'
+#' @param phtypes_file (character)
+#'      The path to a csv file with phenotype data. The file must have an 'rfid'
+#'      column.
+#' 
+#' @param trait (character)
+#'      The name of the dataframe column (the trait name) on which to conduct
+#'      the train/test split
+#' 
+#' @param train_split (float)
+#'      (default 0.7) The desired frequency of samples to randomly include in 
+#'      the training set. The remainder (1 - train_split) will be included in 
+#'      the test set.
+#' 
+#' @param train_dir (character)
+#'      The directory path in which to store splitted training data.
+#' 
+#' @param test_dir (character)
+#'      The directory path in which to store splitted test data.
+#' 
+#' @return A list with file paths to train and test data, file paths to text 
+#'      files listing RFIDs present in either sample, and dataframes of 
+#'      training and test data.
+#
+train_test_split <- function(
+    phtypes_file, 
+    trait,
+    train_split=0.7,
+    train_dir,
+    test_dir) 
+{
+    test_split = 1 - train_split
+    pheno_dat <- read.csv(phtypes_file)
+    trait_dat <- pheno_dat[,c('rfid',trait)]
+    trait_dat <- trait_dat[complete.cases(trait_dat),]
+    rownames(trait_dat) <- trait_dat$rfid
+    trait_dat <- load_and_prepare_trait_data(phtypes_file, 'rfid', trait)
+
+    # set up training data
+    train_rfids <- sample(rownames(trait_dat), train_split * nrow(trait_dat))
+    train_df <- trait_dat[train_rfids,, drop=FALSE]
+
+    # set up test data
+    test_rfids <- setdiff(rownames(trait_dat), train_rfids)
+    test_df <- trait_dat[test_rfids,, drop=FALSE]
+
+    # save data
+    train_path <- file.path(train_dir, paste0(trait,'_train_', train_split, '.csv'))
+    test_path <- file.path(test_dir, paste0(trait,'_test_', test_split, '.csv'))
+    write.csv(train_df, train_path, row.names=F, quote=F, na='')
+    write.csv(test_df, test_path, row.names=F, quote=F, na='')
+
+    # save ID lists in Plink format to allow downstream genotype data filtering
+    train_ids_df <- data.frame(fam = 0, id = train_rfids)
+    test_ids_df <- data.frame(fam = 0, id = test_rfids)
+    train_ids_file <- file.path(train_dir, paste0('phtyped_ids_', trait, '_train_', train_split))
+    test_ids_file <- file.path(test_dir, paste0('phtyped_ids_', trait, '_test_', test_split))     
+    write.table(train_ids_df, train_ids_file , sep='\t', row.names=F, col.names=F, quote=F)
+    write.table(test_ids_df, test_ids_file , sep='\t', row.names=F, col.names=F, quote=F)
+
+    return(list(train_file = train_path, test_file = test_path,
+                train_ids_file = train_ids_file, test_ids_file = test_ids_file,
+                train_ids = train_rfids, test_ids = test_rfids,
+                train = train_df, test = test_df))
 }
