@@ -366,8 +366,7 @@ gen_sim_closure_r_sq <- function(r_sq, genotypes,
 #
 validate_test_preds <- function(phenotypes,
                            genotypes, 
-                           fitted_u,         
-                           fitted_beta) 
+                           fitted_mod) 
 {
     
     if (!identical(rownames(genotypes),names(phenotypes)))
@@ -375,7 +374,7 @@ validate_test_preds <- function(phenotypes,
                    
 
     # predict on the test set using u, beta from the trained model
-    test_pred <- predict_lmm(genotypes, fitted_u, fitted_beta)
+    test_pred <- predict_lmm(genotypes, fitted_mod$u, fitted_mod$beta)
  
     # goodness-of-fit measures
     rho <- cor(test_pred, phenotypes, method='spearman')
