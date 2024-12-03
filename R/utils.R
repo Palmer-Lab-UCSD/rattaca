@@ -1201,3 +1201,36 @@ merge_preds <- function(directory, # directory containing trait-named directorie
     return(all_preds)
                         
 }
+
+#' Get assignment group designations (e.g., high vs low) for a set of 
+#'      predictions.
+#'
+#' @export
+#'
+#' @param preds (dataframe)
+#'      A dataframe with at least one column of trait predictions.
+#' 
+#' @param col (character)
+#'      The name of the dataframe column on which to designate group assignments.
+#' 
+#' @param n_groups (int)
+#'      (default 2) The number of desired groups to split assignments into. The
+#'      default 2 splits into 'high' vs. 'low' groups, 3 splits into 
+#'      'low'/'mid'/'high', and other numbers split predictions into n_groups 
+#'      numeric quantiles.
+#' 
+#' @return A vector of group assignments in the same order as col.
+#
+
+trait_groups <- function(preds, col, n_groups=2) {
+    group_col <- paste0(col, '_', n_groups, 'group')
+    trait_quantiles <- quantile(preds[[col]], probs = seq(0, 1, by = 1/n_groups))
+    if (n_groups==2) {
+        groups <- sapply(preds[[col]], function(x) ifelse(x > median(preds[[col]]), 'high', 'low'))
+    } else if (n_groups==3) {
+        groups <- cut(preds[[col]], breaks = trait_quantiles, labels=c('low','mid','high'), include.lowest=T)
+    } else if (n_groups > 3) {
+        groups <- cut(preds[[col]], breaks = trait_quantiles, labels=F, include.lowest=T)
+    }
+    return(groups)
+}
