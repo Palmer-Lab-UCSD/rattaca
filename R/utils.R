@@ -1444,3 +1444,198 @@ summarize_preds <- function(
     write.csv(summary, file.path(results_dir, paste0(basename, '_summary_', datestamp, '.csv')), row.names=F, quote=F, na='')
     return(summary)
 }
+
+
+#' Produce a "composite" trait from the predictions of multiple individual 
+#' traits, to be used in downstream assignment.
+#' 
+#' @description
+#' Reads trait predictions and modifies them to negate or invert their ranks 
+#' or z-scores, then averages traits per individual to produce the composite. 
+#' This allows prioritizing multiple traits at once for assignment, and trait 
+#' modifications allow prioritization of rats that are, say, intermediate for 
+#' one trait or whose set of traits are most consistently extreme, whether 
+#' positively or negatively correlated as desired.
+#'
+#' @export
+#'
+#' @param preds (dataframe or character)
+#'      A dataframe or csv path to a file containing merged RATTACA predictions 
+#'      for multiple traits.
+#' 
+#' @param traits (character)
+#'      Vector of trait names to be included in calculating the composite trait.
+#' 
+#' @param negate (logical)
+#'      A logical vector denoting, in the order of 'traits', whether to negate 
+#'      the predicted values for each trait. Negating multiplies each prediction 
+#'      by -1, effectively turning low ranks (or z-scores) high and high ranks
+#'      low.
+#' 
+#' @param invert (logical)
+#'      A logical vector denoting, in the order of 'traits', whether to invert 
+#'      the predicted values for each trait. Inverting divides 1/prediction, 
+#'      effectively turning intermediate z-scores extreme and extreme z-scores 
+#'      intermediate, or large ranks small and small ranks large.
+#' 
+#' @param metric (string)
+#'      Which prediction metric to use (either 'rank' or 'zscore') in 
+#'      calculating the composite trait. 
+#' 
+#' @param stat (string)
+#'      Which summary statistic to use (either 'mean' or 'median') in 
+#'      calculating the composite trait. That is, the composite will be 
+#'      calculated as either the mean or median of all individual traits 
+#'      (per rat) after negation and/or inversion (or neither).
+#' 
+#' @param new_trait (string)
+#'      The name of the new composite trait
+#' 
+#' @param plot_mar (numeric)
+#'      (Defualt c(0,0,8,0)) A vector of plotting margins used to plot trait 
+#'      correlations This may need tweaking for aesthetic plotting depending on 
+#'      trait and variable names.
+#' 
+#' @param plot_oma (numeric)
+#'      (Default c(0,0,2,2)) A vector of outer plotting margins used to plot 
+#'      trait correlations This may need tweaking for aesthetic plotting 
+#'      depending on trait and variable names.
+#' @param title_line (numeric)
+#'      (Default 7) The line above the correlation plot on which to print the
+#'      plot title. This may need tweaking for aesthetic plotting.
+#' @param output_dir (string)
+#'      (Default NULL) The directory path in which to save output files
+#' 
+#' @return Returns nothing to the R console. Saves csv files for trait 
+#'      correlations and composite trait values, plus png files plotting trait
+#'      correlations.
+#
+make_composite_trait <- function(
+    preds, # df or path to predictions csv
+    traits, # vector of trait names desired to calculate a composite trait
+    negate, # logical vector of length(traits): whether to multiply each trait by -1 to align desired high/low values (turns high to low, low to high)
+    invert, # logical vector of length(traits): whether to perform 1/trait (turns intermediate values high/low and high/low values intermediate)
+    metric = c('rank', 'zscore'), # metric to use in calculating the composite trait
+    stat = c('mean', 'median'), # the statistic to use in calculating the composite trait
+    new_trait, # new variable name for the composite trait
+    plot_mar=c(0, 0, 8, 0), 
+    plot_oma=c(0, 0, 2, 2),
+    title_line=7,
+    output_dir = NULL)
+{
+    metric <- match.arg(metric)
+    stat <- match.arg(stat)
+
+    if (is.character(preds)) {
+        preds <- read.csv(preds)
+    }
+
+    traits_df <- preds[,traits]
+
+    # matrix to store data for relevant traits
+    tmp_mat <- matrix(nrow = nrow(preds), ncol = length(traits))
+    colnames(tmp_mat) <- traits
+    rownames(tmp_mat) <- as.character(preds$rfid)
+
+    # negate data as needed, save to matrix
+    trait_dat <- list()
+    new_names <- c()
+    for (i in 1:length(traits)) {
+        
+        trait <- traits[i]
+        trait_name <- trait
+        needs_negation <- negate[i]
+        needs_inversion <- invert[i]
+        rank_col <- paste0(trait, '_rank')
+        zscore_col <- paste0(trait, '_zscore')
+        use_col <- ifelse(metric == 'rank', rank_col, zscore_col)
+
+        trait_vals <- as.vector(preds[[use_col]])
+
+        # negation: switches orientation of predictions
+        # high ranks become low ranks, low ranks become high
+        # negative zscores become positive, positive zscores become negative while maintaining magnitude
+        if (needs_negation) {
+            trait_name <- paste0(trait_name, '_negated')
+            if (metric == 'rank') {
+                max_pred <- max(trait_vals) 
+                trait_vals <- max_pred + 1 - trait_vals
+            } else if (metric == 'zscore') {
+                trait_vals <- trait_vals * -1
+            }
+        }
+
+        # inversion: switches priority from extreme to intermediate predictions
+        # high and low ranks become intermediate, intermediate become high or low while maintaining orientation
+        # small magnitude zscores become large, large magnitude zscores become small while maintaining high/low orientation
+        if (needs_inversion) {
+            trait_name <- paste0(trait_name, '_inverted')
+            if (metric == 'rank') {
+                median_pred <- median(trait_vals)
+                trait_vals <- 1/(trait_vals - median_pred)
+            } else if (metric == 'zscore') {
+                trait_vals[which(trait_vals==0)] <- 1/1e9
+                trait_vals <- 1/trait_vals           
+            }
+        }
+    
+        tmp_mat[,i] <- trait_vals
+        new_names[i] <- trait_name
+
+    } # end of traits loop
+
+    # finalize modified trait names
+    new_names <- paste0(new_names, '_', metric)
+    colnames(tmp_mat) <- new_names
+    colnames(traits_df) <- paste0(traits, '_', metric)
+
+    # calculate the composite trait
+    new_trait_vals <- apply(tmp_mat, 1, stat)
+
+    new_trait_metrics <- get_ranks_zscores(
+        predictions = new_trait_vals,
+        trait = new_trait)
+
+    # save new trait values, ranks, zscores to df
+    new_vals_df <- data.frame(
+        rfid = names(new_trait_vals),
+        new_trait = new_trait_vals)
+    names(new_vals_df)[2] <- new_trait
+
+    new_metrics_df <- data.frame(
+        rfid = names(new_trait_metrics$rank),
+        rank = new_trait_metrics$rank,
+        zscore = new_trait_metrics$z_score)
+    names(new_metrics_df) <- c('rfid', paste0(new_trait, '_rank'), paste0(new_trait, '_zscore'))
+
+    out_df <- merge(new_vals_df, new_metrics_df, by = 'rfid')
+
+    # add the new trait to the traits dataframe/matrix
+    # to plot trait correlations
+    traits_df[[new_trait]] <- new_trait_vals
+    traits_mat <- cbind(tmp_mat, new_trait_vals); colnames(traits_mat)[i+1] <- new_trait
+    corr_df <- cor(traits_df, method='spearman')
+    corr_mat <- cor(traits_mat, method='spearman')
+    
+    if (!is.null(output_dir)) {
+        dir.create(output_dir, showWarnings = FALSE)
+        cat('Saving composite trait data to', paste0(output_dir,'/'), '\n')
+        write.csv(out_df, file.path(output_dir, paste0(new_trait, '_composite_scores.csv')),
+                  row.names=F, quote=F, na='')
+        write.csv(corr_df, file.path(output_dir, paste0(new_trait, '_corr_raw_traits.csv')),
+                  row.names=T, quote=F)
+        write.csv(corr_mat, file.path(output_dir, paste0(new_trait, '_corr_altered_traits.csv')),
+                  row.names=T, quote=F)
+        png(file.path(output_dir, paste0(new_trait, '_corrplots.png')), width=11, height=7, units='in', res=300)
+        # par(mfrow=c(1,2), mar=c(0, 0.2, 50, 0.3), oma=c(0, 0, 5, 0.4))
+        par(mfrow=c(1,2), mar=plot_mar, oma=plot_oma) 
+        corrplot(corr_df, type = 'upper', order = 'original', tl.col = 'black')
+        mtext('raw sub-traits', side=3, line=title_line, cex=1.5, font=2)
+        mtext(new_trait, side=3, line=title_line + 1.6, cex=1.5, font=2)
+        corrplot(corr_mat, type = 'upper', order = 'original', tl.col = 'black')
+        mtext('modified sub-traits', side=3, line=title_line, cex=1.5, font=2)
+        mtext(new_trait, side=3, line=title_line + 1.6, cex=1.5, font=2)
+        dev.off()
+    }
+    return(out_df)
+}
