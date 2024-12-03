@@ -1304,3 +1304,40 @@ train_test_split <- function(
                 train_ids = train_rfids, test_ids = test_rfids,
                 train = train_df, test = test_df))
 }
+
+
+#' Store model parameters from a bpar file.
+#' 
+#' @description
+#' Reads a bpar file and stores model parameters as a rattaca model object, 
+#' formatted as output by fit().
+#'
+#' @export
+#'
+#' @param bpar_file (character)
+#'      The path to the bpar file with desired parameter values.
+#' 
+#' @return A list with model parameters, BLUPs, and performance statistics, 
+#'      as output by fit().
+
+# convert bpar parameters into a list as output by fit()
+convert_bpar <- function(bpar_file) {
+    
+    pars <- read_pars(bpar_file)
+    md <- pars$meta
+    dat <- pars$data
+    out <- list()
+
+    out$Vu <- md$variance_u
+    out$Ve <- md$variance_e
+    out$beta <- md$intercept
+    out$beta.SE <- md$intercept_se
+    out$u <- dat[,1]
+    out$u.SE <- dat[,2]
+    out$LL <- md$log_likelihood
+    out$r_sq <- md$r_sq
+    out$pearson_corr <- md$pearson_corr
+    out$spearman_corr <- md$spearman_corr
+
+    return(out)
+}
