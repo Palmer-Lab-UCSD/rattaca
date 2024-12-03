@@ -138,12 +138,17 @@ impute <- function(genotypes)
 #' 
 #' @param num_folds (int)
 #'      The desired number of folds (k) used for k-fold cross-validation
+#' 
+#' @param out_dir (character)
+#'      The path to the directory in which to save output files summarizing
+#'      cross-validation performance
 #'
-#' @return A list of (1) the trait name, (2) the list of k model fits onto each
+#' @return A list of (1) the trait name, (2) the lists of RFIDs including in the
+#'      train and test sets of each fold, (3) the list of k model fits onto each
 #'      training sample (as produced by fit()), and (3) the list of k model
 #'      validations of each test sample (as produced by validate_test_preds())
 #
-kfold_cv <- function(data, num_folds)
+kfold_cv <- function(data, num_folds, out_dir)
 {
             
     # set up k-fold cross validation: train/test split on RATS
@@ -172,16 +177,18 @@ kfold_cv <- function(data, num_folds)
     # empty lists to store model parameters and performance
     train_fits <- list()
     test_fits <- list()
-    test_preds <- list()
-    test_out <- list()
+    splits <- list()
 
     # k-fold cross validation
     for (k in 1:num_folds){
-    
+        
         cat(data$trait, 'CV fold', paste0(k,':'), format(Sys.time(), '%Y-%m-%d %H:%M:%S'), '\n')
+
         # set up phenotype train/test sets
         test_rfids <- rownames(trait_df[trait_df$kfold == k,])
         train_rfids <- rownames(trait_df[trait_df$kfold != k,])
+
+        splits[[k]] <- list(train = train_rfids, test = test_rfids)
 
         # split phenotype data
         pheno_train <- trait_df[train_rfids, data$trait]
@@ -197,16 +204,58 @@ kfold_cv <- function(data, num_folds)
         train_fits[[k]] <- fit(pheno_train, geno_train)
 
         # re-fit the trained model to the test data
-        test_fit <- validate_test_preds(pheno_test, geno_test, train_fits[[k]]$u, train_fits[[k]]$beta)
-        
-        test_out[[k]] <- list(obs = test_fit$obs, pred = test_fit$pred, r_sq = test_fit$r_sq, 
-                              pearson_corr = test_fit$pearson_corr, spearman_corr = test_fit$spearman_corr)
-        
+        test_fits[[k]] <- validate_test_preds(pheno_test, geno_test, train_fits[[k]])
+                
     } # end of k-fold loop
     
-    model_results <- list(trait = data$trait, train = train_fits, test = test_out)
-    return(model_results)
+    model_results <- list(trait = data$trait, splits = splits, train = train_fits, test = test_fits)
+
+    # write cross-validation results to files
+    test_results <- model_results$test
     
+    obs <- c()
+    pred <- c()
+    r_sq <- c()
+    r <- c()
+    rho <- c()
+    fold <- c()
+
+    for (k in 1:length(test_results)) {
+        out <- model_results$test[[k]]
+        obs <- c(obs, out$obs)
+        pred <- c(pred, out$pred)
+        fold <- c(fold, rep(k, length(out$obs)))
+        r_sq <- c(r_sq, rep(out$r_sq, length(out$obs)))
+        r <- c(r, rep(out$pearson_corr, length(out$obs)))
+        rho <- c(rho, rep(out$spearman_corr, length(out$obs)))
+    }
+
+    cv_df <- data.frame(
+        rfid = names(obs),
+        trait = rep(trait, length(obs)),
+        fold = fold,
+        obs = obs,
+        pred = pred,
+        r_sq = r_sq,
+        r = r,
+        rho = rho)
+    outfile <- paste0(data$trait,'_',num_folds,'fold_cv.csv')
+    outfile <- file.path(out_dir, outfile)
+    write.csv(cv_df, outfile, row.names=F, quote=F, na='')
+    cat('Cross-validation dataset written to', outfile, '\n')
+
+    summary_df <- data.frame(
+        trait = trait,
+        fold = unique(fold),
+        r_sq = unique(r_sq),
+        r = unique(r),
+        rho = unique(rho))
+    outfile <- paste0(data$trait,'_',num_folds,'fold_cv_summary.csv')
+    outfile <- file.path(out_dir, outfile)
+    write.csv(summary_df, outfile, row.names=F, quote=F, na='')
+    cat('Cross-validation summary written to', outfile, '\n\n')
+
+    return(model_results)
 } 
 
 

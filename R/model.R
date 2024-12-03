@@ -355,10 +355,8 @@ gen_sim_closure_r_sq <- function(r_sq, genotypes,
 #' @param genotypes (matrix)
 #'      A matrix of m samples by n SNPs, with samples in the same
 #'      order as phenotypes
-#' @param fitted_u (numeric)
-#'      A vector of marker effects from a fitted model
-#' @param fitted_beta (numeric)
-#'      The intercept term from a fitted model
+#' @param fitted_mod (list)
+#'      A fitted rattaca model, as output by fit()
 #' 
 #' @return A list of (1) trait observations from the test set,
 #'      (2) trait predictions for the test set, and (3,4,5)
