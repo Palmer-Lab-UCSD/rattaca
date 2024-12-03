@@ -460,6 +460,22 @@ make_plink_dataset <- function(input_genotypes,
     return(out)
 }
 
+#' Produce a rattaca geno data object from an existing Plink genotype dataset.
+#'
+#' @export
+#'
+#' @param file_stem (string)
+#'      The file path/prefix for the Plink dataset.
+#' 
+#' @return A rattaca genotype dataset: a list of (1) the file stem for the 
+#'      dataset and (2) the genotype matrix.
+#
+
+load_existing_plink_dataset <- function(file_stem) {
+
+    plink_dat <- load_and_prepare_plink_data(file_stem)
+    out <- list(geno_file = file_stem, geno =  plink_dat)
+}
 
 #' Identify the set of SNP variants common to both the training
 #' and test datasets
