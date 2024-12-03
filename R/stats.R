@@ -328,7 +328,7 @@ zscore <- function(data){
 }
 
 
-#' Perform multiple power analyses on a set of hypothetical assignment groups.
+#' Perform power analyses on a set of hypothetical assignment groups.
 #' 
 #' @description
 #' Genotypes are sampled into hypothetical assignment (high/low) groups 
@@ -370,7 +370,7 @@ zscore <- function(data){
 #'      (default 0.05) The desired alpha value(s) (significance cutoff(s)) to 
 #'      use when determining statistical power to compare assigned groups.
 #' 
-#' @param reps (numeric)
+#' @param tests (numeric)
 #'      (default 100) The desired number of replicate simulations to conduct
 #'      for each power analysis
 #' 
@@ -386,12 +386,12 @@ test_power <- function(
     genotypes,   # geno matrix of all predicted samples
     predictions, # named vector of trait predictions
     fitted_mod,  # a fitted model (as output by fit()) 
-    group_size=c(0.05, 0.1, 0.25, 0.33), # fraction or sample count for assignment group size
-    low_ids=NULL,  # vector of IDs already assigned to the low sample
-    high_ids=NULL, # vector of IDs already assigned to the high sample
-    alpha=0.05,
-    reps=100,
-    outdir=NULL)
+    group_size = c(0.01, 0.025, 0.05, 0.1), # fraction or sample count for assignment group size
+    low_ids = NULL,  # vector of IDs already assigned to the low sample
+    high_ids = NULL, # vector of IDs already assigned to the high sample
+    alpha = 0.05,    # vector of desired alpha cutoffs to test \
+    tests = 100,      # number of replicate tests per power analysis (the number of comparisons to make btwn samples)
+    outdir = NULL)
 {
     preds <- sort(predictions)
     sample_pct <- c()
@@ -441,7 +441,7 @@ test_power <- function(
                               geno_high = geno_high, 
                               sim = sim, 
                               sig=sig, 
-                              m_power_reps=reps) 
+                              m_power_reps=tests) 
         power <- c(power, pwr)
     }
 
@@ -455,6 +455,7 @@ test_power <- function(
             pct_cutoff = sample_pct,
             group_n = sample_n,
             alpha = sig_cutoff,
+            tests = tests,
             power = power)
         out_df <- out_df[with(out_df, order(group_n, alpha)), ]
     } else {
@@ -463,16 +464,140 @@ test_power <- function(
             pct_cutoff = sample_pct,
             group_n = sample_n,
             alpha = sig_cutoff,
+            tests = tests,
             power = power)
         out_df <- out_df[with(out_df, order(group_n, sample_type, alpha)), ]
     }
 
 
     if (!is.null(outdir)) {
-        write.csv(out_df, file.path(outdir, paste0(trait, '_test_power.csv')),
+        write.csv(out_df, file.path(outdir, paste0(trait, '_test_power_n', 
+            tests,'_tests.csv')),
               row.names=F, quote=F, na='')
     }
 
     return(out_df)
 
+}
+
+
+#' Perform replicated power analyses on a set of hypothetical assignment groups.
+#' 
+#' @description
+#' Conducts replicate runs of test_power() to calculate the mean and standard 
+#' error of power analysis summary statistics. 
+#'
+#' @export
+#'
+#' @param trait (character)
+#'      The trait name
+#' 
+#' @param genotypes (matrix)
+#'      A named genotype matrix for all predicted animals
+#' 
+#' @param predictions (numeric)
+#'      The named vector of trait predictions that will be used to separate
+#'      animals into respective high or low assignment groups.
+#' 
+#' @param fitted_mod (list)
+#'      A fitted model object, as output by rattaca::fit()
+#' 
+#' @param group_size (numeric)
+#'      (default c(0.05, 0.1, 0.25, 0.33)) A numeric vector reflecting the 
+#'      sample size(s) desired for each assigned group to compare in a power 
+#'      analysis. Can be input either as proportions of the total predicted 
+#'      sample or sample counts. For example, 0.1 will compare the highest 10% 
+#'      and lowest 10% of predictions, and 20 will compare the highest 20 and 
+#'      lowest 20 predictions.
+#' 
+#' @param low_ids (character)
+#'      (default NULL) A vector of RFIDs that have already been assigned to a
+#'      'low' group based on trait predictions.
+#' 
+#' @param high_ids character)
+#'      (default NULL) A vector of RFIDs that have already been assigned to a
+#'      'high' group based on trait predictions.
+#' 
+#' @param alpha (numeric)
+#'      (default 0.05) The desired alpha value(s) (significance cutoff(s)) to 
+#'      use when determining statistical power to compare assigned groups.
+#' 
+#' @param reps (numeric)
+#'      (default 10) The desired number of replicated power analyses to conduct 
+#' 
+#' @param tests_per_rep (numeric)
+#'      (default 100) The desired number of replicate simulations to conduct
+#'      for each power analysis. The number of comparisons to make between 
+#'      samples (per replicate).
+#' 
+#' @param outdir (character)
+#'      (default NULL) The desired output directory in which to save results
+#' 
+#' @return A dataframe with one row per combination of desired group sample 
+#'      size and alpha, and corresponding statistical power.
+#
+# function to do multiple reps of test_power
+test_power_multi <- function(
+    trait,
+    genotypes,       # geno matrix of all predicted samples
+    predictions,     # named vector of trait predictions
+    fitted_mod,      # a fitted model (as output by fit()) 
+    group_size = c(0.01, 0.025, 0.05, 0.1), # fraction or sample count for assignment group size
+    low_ids = NULL,  # vector of IDs already assigned to the low sample
+    high_ids = NULL, # vector of IDs already assigned to the high sample
+    alpha = 0.05,    # vector of desired alpha cutoffs to test
+    reps = 10,       # number of outer reps: number of repeated runs of test_power()
+    tests_per_rep = 100,     # number of internal replicate tests for test_power() (the number of comparisons to make btwn samples)
+    outdir = NULL)
+{
+    # conduct multiple runs of test_power()
+    results <- replicate(reps, test_power(
+        trait = trait,
+        genotypes = genotypes,
+        predictions = predictions,
+        fitted_mod = fitted_mod,
+        group_size = group_size,
+        low_ids = low_ids,
+        high_ids = high_ids,
+        alpha = alpha,
+        tests = tests_per_rep,
+        outdir = NULL
+    ), simplify = FALSE)
+
+    # combine results into a dataframe
+    results <- do.call(rbind, results)
+
+    # calculate mean and SE of power from each analysis
+    if ('sample_type' %in% colnames(results)) {
+        mean_power <- aggregate(power ~ sample_type + pct_cutoff + group_n + alpha, data = results, FUN = mean)
+        sd_power <- aggregate(power ~ sample_type + pct_cutoff + group_n + alpha, data = results, FUN = sd)
+        n_power <- aggregate(power ~ sample_type + pct_cutoff + group_n + alpha, data = results, FUN = length)
+        se_power <- sd_power$power / sqrt(n_power$power)
+    } else {
+        mean_power <- aggregate(power ~ pct_cutoff + group_n + alpha, data = results, FUN = mean)
+        sd_power <- aggregate(power ~ pct_cutoff + group_n + alpha, data = results, FUN = sd)
+        n_power <- aggregate(power ~ pct_cutoff + group_n + alpha, data = results, FUN = length)
+        se_power <- sd_power$power / sqrt(n_power$power)
+    }
+
+    summary <- data.frame(
+        pct_cutoff = mean_power$pct_cutoff,
+        group_n = mean_power$group_n,
+        alpha = mean_power$alpha,
+        reps = reps,
+        tests_per_rep = tests_per_rep,
+        power_mean = mean_power$power,
+        power_se = se_power)
+
+    if (!is.null(outdir)) {
+        
+        write.csv(results, file.path(outdir, paste0(trait, '_test_power_multi_n',
+            tests_per_rep, '_tests_n', reps, '_reps.csv')),
+              row.names=F, quote=F, na='')
+        write.csv(summary, file.path(outdir, paste0(trait, '_test_power_multi_n',
+            tests_per_rep, '_tests_n', reps, '_reps_summary.csv')),
+              row.names=F, quote=F, na='')
+    }
+
+    return(list(results = results, summary = summary))
 }
