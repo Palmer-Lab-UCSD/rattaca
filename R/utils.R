@@ -870,15 +870,16 @@ plot_pca <- function(plink_pca,
 #'      kfold_cv(). 
 #' 
 #' @param metric (character)
-#'      The desired statistic to use to identify the best model fit. The 'best'
-#'      fold is defined as that whose performance maximizes this metric.
+#'      (Default 'pearson') The desired statistic to use to identify the best 
+#'      model fit. The 'best' fold is defined as that whose performance 
+#'      maximizes this metric.
 #' 
 #' @return The integer value identifying the 'test' list element (i.e., the 
 #'      fitted fold) with the best model performance, per the desired 
 #'      performance metric.
 #
 best_fold <- function(cv_results,
-                     metric=c('pearson','spearman','r_sq')) {
+                     metric='pearson') {
 
     test_results <- cv_results$test
     perf <- c()
@@ -990,10 +991,9 @@ save_cv_results <- function(cv_results, output_dir) {
         r = unique(df1$r),
         rho = unique(df1$rho))
 
-    timestamp <- format(Sys.time(), '%Y%m%d-%H:%M:%S')
-    write.csv(df1, file.path(output_dir, paste0(trait, '_', n_folds, 'fold_cv_', timestamp, '_results.csv')),
+    write.csv(df1, file.path(output_dir, paste0(trait, '_', n_folds, 'fold_cv_results.csv')),
         row.names=F, quote=F, na='')
-    write.csv(df2, file.path(output_dir, paste0(trait, '_', n_folds, 'fold_cv_', timestamp, '_summary.csv')),
+    write.csv(df2, file.path(output_dir, paste0(trait, '_', n_folds, 'fold_cv_summary.csv')),
         row.names=F, quote=F, na='')
 }
 
