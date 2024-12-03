@@ -382,7 +382,13 @@ validate_test_preds <- function(phenotypes,
     r <- cor(test_pred, phenotypes, method='pearson')
     r_sq <- compute_r_sq(phenotypes, test_pred)
     
-    out <- list(obs = phenotypes, pred = test_pred, r_sq = r_sq, pearson_corr = r, spearman_corr = rho)
+    # add updated performance metrics to original output from fit()
+    out <- fitted_mod
+    out$r_sq <- r_sq
+    out$pearson_corr <- r
+    out$spearman_corr <- rho
+    out$obs <- phenotypes
+    out$pred <- test_pred
+    
     return(out)
-
 }
