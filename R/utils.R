@@ -1336,8 +1336,7 @@ train_test_split <- function(
 #' 
 #' @return A list with model parameters, BLUPs, and performance statistics, 
 #'      as output by fit().
-
-# convert bpar parameters into a list as output by fit()
+#
 convert_bpar <- function(bpar_file) {
     
     pars <- read_pars(bpar_file)
@@ -1360,3 +1359,88 @@ convert_bpar <- function(bpar_file) {
 }
 
 
+#' Produce a file summarizing predictions model performance.
+#' 
+#' @description
+#' Reads prediction results and a csv of trait metadata from multiple trait-
+#' specific directories to merge metadata with model performance statistics.
+#'
+#' @export
+#'
+#' @param traits (character)
+#'      A vector of trait names(s) (corresponding to directory names with 
+#'      prediction results) to incorporate into the summary
+#' 
+#' @param results_dir (string)
+#'      The directory path to the results folder housing output directories 
+#'      named per trait. The function will search for files within each of 
+#'      the directories named in 'traits'.
+#' 
+#' @param basename (string)
+#'      The base name for the output summary file. The final output will be 
+#'      named <basename>_summary_<datestamp>.csv.
+#' 
+#' @param pheno_dict (string)
+#'      (Default NULL) The path to a phenotype data dictionary csv. The file 
+#'      must have columns 'trait', 'description', 'covariates', 'heritability', 
+#'      'variable_used', and 'source_file'.
+#' 
+#' @return A list with model parameters, BLUPs, and performance statistics, 
+#'      as output by fit().
+#
+summarize_preds <- function(
+    traits,            # vector of trait names, as used for predictions
+    results_dir,       # directory containing trait-named results folders 
+    basename = 'all_traits',
+    pheno_dict = NULL) # path to csv with trait, variable_used, description columns
+{
+    summary <- data.frame(
+        trait = traits,
+        n_train = NA,
+        n_test = NA,
+        mean_r_sq = NA,
+        mean_r = NA,
+        mean_rho = NA)
+
+    if (!is.null(pheno_dict)) {
+        pheno_dict <- read.csv(pheno_dict, quote = '"')
+        pheno_dict$description <- gsub(',', ';', pheno_dict$description)
+        pheno_dict$covariates <- gsub(',', '|', pheno_dict$covariates)
+        summary$heritability <- NA
+        summary$variable_used <- NA
+        summary$description <- NA
+        summary$covariates <- NA
+        summary$source_file <- NA
+    }
+
+    for (i in 1:nrow(summary)) {
+        trait <- summary$trait[i]
+
+        train_fam_file <- list.files(file.path(results_dir, trait, 'train'), pattern = '.fam$', full.names = T)
+        test_fam_file <- list.files(file.path(results_dir, trait, 'test'), pattern = '.fam$', full.names = T)
+        cv_sum <- read.csv(list.files(file.path(results_dir, trait), pattern = 'cv_summary.csv$', full.names = T))
+        
+        summary$n_train[i] <- system(paste('cat', train_fam_file, '| wc -l'), intern = T)
+        summary$n_test[i] <- system(paste('cat', test_fam_file, '| wc -l'), intern = T)
+        summary$mean_r_sq[i] <- mean(cv_sum$r_sq)
+        summary$mean_r[i] <- mean(cv_sum$r)
+        summary$mean_rho[i] <- mean(cv_sum$rho)
+
+        if (!is.null(pheno_dict)) {
+            dict <- pheno_dict[pheno_dict$trait == trait,]
+            summary$heritability[i] <- dict$heritability
+            summary$variable_used[i] <- dict$variable_used
+            summary$description[i] <- dict$description
+            summary$covariates[i] <- dict$covariates
+            summary$source_file[i] <- dict$source_file
+        }
+    }
+    if (!is.null(pheno_dict)) {
+        col_order <- c('trait','heritability','n_train','n_test','mean_r_sq','mean_r','mean_rho',
+                       'description','covariates','variable_used','source_file')
+        summary <- summary[,col_order]
+    }
+    datestamp <- format(Sys.time(), '%Y%m%d')
+    write.csv(summary, file.path(results_dir, paste0(basename, '_summary_', datestamp, '.csv')), row.names=F, quote=F, na='')
+    return(summary)
+}
