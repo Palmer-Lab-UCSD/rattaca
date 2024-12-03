@@ -16,7 +16,7 @@ ENCODING <- "UTF-8"
 HEADER_PREFIX <- "#"
 
 
-#' Read the parameters written to file
+#' Read model parameters from a bpar file
 #'
 #' @export
 #' 
@@ -189,11 +189,11 @@ write_pars <- function(trait, trait_file, genotype_prefix,
                      sep=FIELD_DELIM),
                con=fconn)
 
-    for (rname in rownames(pars$u))
+    for (uname in names(pars$u))
     {
-        writeLines(paste(rname,
-                         pars$u[rname],
-                         pars$u.SE[rname],
+        writeLines(paste(uname,
+                         pars$u[uname],
+                         pars$u.SE[uname],
                          sep=FIELD_DELIM),
                    con=fconn)
     }
