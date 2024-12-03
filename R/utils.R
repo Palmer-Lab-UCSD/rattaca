@@ -267,7 +267,6 @@ get_phenotyped_ids <- function(phenotype_data, id_column, output_dir, trait_colu
 }
 
 
-
 #' Modify a Plink genotype dataset to produce a new Plink dataset
 #' of system files, with option to read data into R
 #'
@@ -464,6 +463,7 @@ make_plink_dataset <- function(input_genotypes,
     return(out)
 }
 
+
 #' Produce a rattaca geno data object from an existing Plink genotype dataset.
 #'
 #' @export
@@ -474,33 +474,50 @@ make_plink_dataset <- function(input_genotypes,
 #' @return A rattaca genotype dataset: a list of (1) the file stem for the 
 #'      dataset and (2) the genotype matrix.
 #
-
 load_existing_plink_dataset <- function(file_stem) {
 
     plink_dat <- load_and_prepare_plink_data(file_stem)
     out <- list(geno_file = file_stem, geno =  plink_dat)
 }
 
+
 #' Identify the set of SNP variants common to both the training
 #' and test datasets
 #'
 #' @export
 #'
-#' @param train_genotypes (string)
-#'      The file path/prefix for the training Plink dataset.
+#' @param train_genotypes (string, list, or matrix)
+#'      Alternatively, the file path/prefix for the training Plink dataset,
+#'      a training genotype data object as produced by make_plink_dataset(), 
+#'      or a named training genotype matrix with RFID rows and variant columns
 #' 
-#' @param test_genotypes (string)
-#'      The file path/prefix for the test Plink dataset.
+#' @param test_genotypes (string, list, or matrix)
+#'      Alternatively, the file path/prefix for the test Plink dataset,
+#'      a test genotype data object as produced by make_plink_dataset(), 
+#'      or a named test genotype matrix with RFID rows and variant columns
 #'
 #' @return A vector of all SNP variants found in both datasets.
 #
 get_common_snpset <- function(train_genotypes, test_genotypes) {
 
     # read in snp sets
-    all_train_snps <- genio::read_bim(paste0(train_genotypes, '.bim'))
-    all_train_snps <- all_train_snps$id
-    all_test_snps <- genio::read_bim(paste0(test_genotypes, '.bim'))
-    all_test_snps <- all_test_snps$id
+    if (is.character(train_genotypes)) {
+        all_train_snps <- genio::read_bim(paste0(train_genotypes, '.bim'))
+        all_train_snps <- all_train_snps$id
+    } else if (identical(names(train_genotypes), c('geno_file', 'geno'))) {
+        all_train_snps <- colnames(train_genotypes$geno)
+    } else if (is.matrix(train_genotypes)) {
+        all_train_snps <- colnames(train_genotypes)
+    }    
+
+    if (is.character(test_genotypes)) {
+        all_test_snps <- genio::read_bim(paste0(test_genotypes, '.bim'))
+        all_test_snps <- all_test_snps$id
+    } else if (identical(names(test_genotypes), c('geno_file', 'geno'))) {
+        all_test_snps <- colnames(test_genotypes$geno)
+    } else if (is.matrix(test_genotypes)) {
+        all_test_snps <- colnames(test_genotypes)
+    }    
     
     # save all snps common to train/test sets from which to sample a common set of snps
     all_snps <- intersect(all_test_snps, all_train_snps)
@@ -1341,3 +1358,5 @@ convert_bpar <- function(bpar_file) {
 
     return(out)
 }
+
+
