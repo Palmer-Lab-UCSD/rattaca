@@ -1,7 +1,7 @@
 Package: rattaca
 Type: Package
 Title: RATTACA: fit and predict traits from genotypes
-Version: 0.2.3
+Version: 0.7.0
 Date: 2023-08-15
 Author: Robert Vogel [aut, cre],
     Benjamin Johnson [ctb]
@@ -11,6 +11,9 @@ Depends:
 Import:
     genio (>= 1.1.2),
     rrBLUP (>= 4.6.2)
+    viridis (>= 0.6.2)
+    scales (>=1.2.0)
+    corrplot (>=0.95)
 Suggests:
     testthat (>= 3.1.2)
 Description: The RATTACA method aims at predicting rat

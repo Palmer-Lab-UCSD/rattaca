@@ -2,7 +2,7 @@
 % Please edit documentation in R/pario.R
 \name{read_pars}
 \alias{read_pars}
-\title{Read the parameters written to file}
+\title{Read model parameters from a bpar file}
 \usage{
 read_pars(filename)
 }
@@ -17,5 +17,5 @@ list with elements:
 }
 }
 \description{
-Read the parameters written to file
+Read model parameters from a bpar file
 }

@@ -23,6 +23,9 @@ the intercept of the model}
 }
 \value{
 (function)
+     The input arguments of closure function is a 
+     genotype vector of length q_markers or matrix
+     q_markers number of columns
 }
 \description{
 Generate an LMM simulation closure from the r_sq
