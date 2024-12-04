@@ -1644,8 +1644,8 @@ make_composite_trait <- function(
 #' Produce an assignment 'S' plot: trait rank vs. trait prediction.
 #' 
 #' @description
-#' Reads a dataframe of predictions, ranks, and group assignments to plot trait 
-#' rank against predicted values, colored by assigned high/low group.
+#' Reads a dataframe of predictions, ranks, and group assignments to plot 
+#' prediction rank against predicted values, colored by assigned high/low group.
 #'
 #' @export
 #'
@@ -1752,3 +1752,91 @@ plot_assignments <- function(df,
     }
 } 
 
+
+
+#' Produce an assignment density plot: trait z-score density.
+#' 
+#' @description
+#' Reads a dataframe of predictions, z-scores, and group assignments to plot the
+#' density of prediction z-scores, with a rug of individual z-scores colored by 
+#' assigned high/low group.
+#'
+#' @export
+#'
+#' @param df (dataframe)
+#'      A dataframe of trait predictions for a trait of interest (as produced 
+#'      by get_ranks_zscores()), plus a column of group assignments for that 
+#'      trait (as produced by trait_groups()).
+#' 
+#' @param trait (string)
+#'      The name of the trait of interest. Must be the column header for the 
+#'      trait predictions to be plotted.
+#' 
+#' @param assignment_col (string)
+#'      The column header for the column of group assignments to be plotted.
+#' 
+#' @param gen (int)
+#'      The RATTACA generation being plotted.
+#' 
+#' @param trait_name (string)
+#'      (Default NULL) The desired trait name to use in the figure title and 
+#'      file name. Use this option to simplify naming when a trait has a long 
+#'      or unintuitive variable name. 
+#' 
+#' @param outdir (string)
+#'      (Defualt NULL) The directory path in which to save the figure. If NULL, 
+#'      the figure will plot to the R console.
+#' 
+#' @return Plots to the R console if outdir=NULL. Saves a png file if outdir is
+#'          not NULL.
+#
+density_assignments <- function(
+    df, 
+    trait, 
+    assignment_col, 
+    gen = NULL, 
+    trait_name=NULL,
+    outdir=NULL){
+
+    if (is.null(trait_name)) {
+        trait_name <- trait
+    }
+    if (!is.null(outdir)) {
+        out_stem <- file.path(outdir, paste0('rattaca_gen', gen, '_', trait_name, '_assignment_density.png'))
+        png(out_stem, width=7, height=5, units='in', res=300)
+    }
+
+    trait_rank <- paste0(trait,'_rank')
+    group_col <- paste0(trait,'_group')
+    zscore_col <- paste0(trait,'_zscore')
+
+    trait_df <- df[df[[assignment_col]]==1 | df[[assignment_col]]==T | df[[assignment_col]]=='True',]
+    high_df <- trait_df[trait_df[[group_col]]=='high',]
+    low_df <- trait_df[trait_df[[group_col]]=='low',]
+
+    d <- density(df[[zscore_col]])
+    y_at_zero <- approx(d$x, d$y, xout=0)$y  # interpolate y at x=0
+
+    plot(d, xlab='', ylab='', lwd=2, main='')
+    polygon(d, col=alpha(1,0.15)) 
+    segments(x0=0, y0=0, x1=0, y1=y_at_zero)    
+    rug(df[[zscore_col]], col=alpha(1,0.2))
+    rug(trait_df[[zscore_col]], lwd=1.6)
+    points(low_df[[zscore_col]], rep(0, nrow(low_df)), col=inferno(1,1,0.25),pch=16, cex=1.4)
+    points(high_df[[zscore_col]], rep(0, nrow(high_df)), col=inferno(1,1,0.7),pch=16, cex=1.4)
+    points(trait_df[[zscore_col]], rep(0, nrow(trait_df)), cex=1.4, lwd=1.6)
+    title(line=2.6, xlab=bquote(bold(.(trait_name)))); title(line=4, xlab=bquote(bold('prediction Z-score')))
+    title(line=2.6, ,ylab=bquote(bold('Density')))
+    if (!is.null(gen)) {
+        title(line=2.3, main=paste('RATTACA gen', gen))
+        title(line=0.9, main=paste(trait_name, 'assignments'))
+    } else {
+        title(line=1.2, main=paste(trait_name, 'assignments'))
+    }
+
+    # close the png device if opened
+    if (!is.null(outdir)) {
+        dev.off()
+    }
+
+}
