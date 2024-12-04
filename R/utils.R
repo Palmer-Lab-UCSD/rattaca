@@ -1240,7 +1240,8 @@ merge_preds <- function(directory, # directory containing trait-named directorie
 #
 trait_groups <- function(preds, col, n_groups=2) {
     group_col <- paste0(col, '_', n_groups, 'group')
-    trait_quantiles <- quantile(preds[[col]], probs = seq(0, 1, by = 1/n_groups))
+    idx <- !is.na(preds[[col]])
+    trait_quantiles <- quantile(preds[[col]][idx], probs = seq(0, 1, by = 1/n_groups))
     if (n_groups==2) {
         groups <- sapply(preds[[col]], function(x) ifelse(x > median(preds[[col]]), 'high', 'low'))
     } else if (n_groups==3) {
@@ -1627,7 +1628,6 @@ make_composite_trait <- function(
         write.csv(corr_mat, file.path(output_dir, paste0(new_trait, '_corr_altered_traits.csv')),
                   row.names=T, quote=F)
         png(file.path(output_dir, paste0(new_trait, '_corrplots.png')), width=11, height=7, units='in', res=300)
-        # par(mfrow=c(1,2), mar=c(0, 0.2, 50, 0.3), oma=c(0, 0, 5, 0.4))
         par(mfrow=c(1,2), mar=plot_mar, oma=plot_oma) 
         corrplot(corr_df, type = 'upper', order = 'original', tl.col = 'black')
         mtext('raw sub-traits', side=3, line=title_line, cex=1.5, font=2)
@@ -1639,3 +1639,116 @@ make_composite_trait <- function(
     }
     return(out_df)
 }
+
+
+#' Produce an assignment 'S' plot: trait rank vs. trait prediction.
+#' 
+#' @description
+#' Reads a dataframe of predictions, ranks, and group assignments to plot trait 
+#' rank against predicted values, colored by assigned high/low group.
+#'
+#' @export
+#'
+#' @param df (dataframe)
+#'      A dataframe of trait predictions for a trait of interest (as produced 
+#'      by get_ranks_zscores()), plus a column of group assignments for that 
+#'      trait (as produced by trait_groups()).
+#' 
+#' @param trait (string)
+#'      The name of the trait of interest. Must be the column header for the 
+#'      trait predictions to be plotted.
+#' 
+#' @param assignment_col (string)
+#'      The column header for the column of group assignments to be plotted.
+#' 
+#' @param jitter (numeric)
+#'      (Default c(80,40)) A vector of jitter magnitudes for non-assigned and 
+#'      assigned points, respectively. This may need tweaking for aesthetic
+#'      plotting.
+#' 
+#' @param gen (int)
+#'      The RATTACA generation being plotted.
+#' 
+#' @param random_seed (int)
+#'      (Default 1) An integer value with which to set the seed for random
+#'      jittering. This allows consistent placement of jittered points and may 
+#'      need tweaking for aesthetic plotting.
+#' 
+#' @param trait_name (string)
+#'      (Default NULL) The desired trait name to use in the figure title and 
+#'      file name. Use this option to simplify naming when a trait has a long 
+#'      or unintuitive variable name. 
+#' 
+#' @param outdir (string)
+#'      (Defualt NULL) The directory path in which to save the figure. If NULL, 
+#'      the figure will plot to the R console.
+#' 
+#' @return Plots to the R console if outdir=NULL. Saves a png file if outdir is
+#'          not NULL.
+#
+plot_assignments <- function(df, 
+                            trait, 
+                            assignment_col, 
+                            jitter=c(80,40), # jitter for (background, assigned) points; set NULL to turn off jitter
+                            gen, 
+                            random_seed=1,
+                            trait_name=NULL,
+                            outdir=NULL){
+
+    if (is.null(trait_name)) {
+        trait_name <- trait
+    }
+
+    if (!is.null(outdir)) {
+        if (!is.null(jitter)) {
+            out_stem <- file.path(outdir, paste0('rattaca_gen', gen, '_', trait_name, '_assignment_jittered.png'))
+            png(out_stem, width=7, height=5, units='in', res=300)
+        } else {
+            out_stem <- file.path(outdir, paste0('rattaca_gen', gen, '_', trait_name, '_assignment_.png'))
+            png(out_stem, width=7, height=5, units='in', res=300)
+        }
+        png(out_stem, width=7, height=5, units='in', res=300)
+    }
+    
+    trait_df <- df[df[[assignment_col]]==1 | df[[assignment_col]]==T | df[[assignment_col]]=='True',]
+    trait_rank <- paste0(trait,'_rank')
+    group_col <- paste0(trait,'_group')
+    
+    set.seed(random_seed)
+    
+    if (!is.null(jitter)) {
+        x_all <- jitter(df[[trait_rank]], jitter)
+        y_all <- jitter(df[[trait]], jitter[1])
+        x_trait_high <- jitter(trait_df[trait_df[[group_col]]=='high', trait_rank], jitter[2])
+        y_trait_high <- jitter(trait_df[trait_df[[group_col]]=='high', trait], jitter[2])
+        x_trait_low <- jitter(trait_df[trait_df[[group_col]]=='low', trait_rank], jitter[2])
+        y_trait_low <- jitter(trait_df[trait_df[[group_col]]=='low', trait], jitter[2])        
+    } else {
+        x_all <- df[[trait_rank]]
+        y_all <- df[[trait]]
+        x_trait_high <- trait_df[trait_df[[group_col]]=='high', trait_rank]
+        y_trait_high <- trait_df[trait_df[[group_col]]=='high', trait]
+        x_trait_low <- trait_df[trait_df[[group_col]]=='low', trait_rank]
+        y_trait_low <- trait_df[trait_df[[group_col]]=='low', trait]
+    }
+
+    par(mar=c(6,6,4,2))
+    plot(x_all, y_all, pch=16, cex=1.3, col=alpha(1,0.15), xlab='', ylab='')
+    points(x_trait_high, y_trait_high, cex=1.6, pch=16, col=inferno(1,1,0.7))
+    points(x_trait_high, y_trait_high, cex=1.6, lwd=1.4)
+    points(x_trait_low, y_trait_low, cex=1.6, pch=16, col=inferno(1,1,0.25))
+    points(x_trait_low, y_trait_low, cex=1.6, lwd=1.4)
+    title(line=2.6, xlab=bquote(bold(.(trait)))); title(line=4, xlab=expression(bold('prediction rank')))
+    title(line=4, ylab=bquote(bold(.(trait)))); title(line=2.6, ,ylab=expression(bold('prediction')))
+    title(line=2.3, main=paste('RATTACA gen', gen))
+    title(line=0.9, main=paste(trait, 'assignments'))
+    title(line=2.6, xlab=bquote(bold(.(trait)))); title(line=4, xlab=expression(bold('prediction rank')))
+    title(line=4, ylab=bquote(bold(.(trait)))); title(line=2.6, ,ylab=expression(bold('prediction')))
+    title(line=2.3, main=paste('RATTACA gen', gen))
+    title(line=0.9, main=paste(trait_name, 'assignments'))
+
+    if (!is.null(outdir)) {
+        dev.off()
+    }
+} 
+
