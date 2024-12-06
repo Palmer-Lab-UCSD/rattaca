@@ -237,7 +237,11 @@ argument_parser <- function(..., description=NULL)
 #
 get_phenotyped_ids <- function(phenotype_data, id_column, output_dir, trait_column = NULL) {
 
-    pheno_dat <- read.csv(phenotype_data)
+    if (class(phenotype_data) == 'data.frame') {
+        pheno_dat <- phenotype_data
+    } else {
+        pheno_dat <- read.csv(phenotype_data)
+    }
 
     if (is.null(trait_column)) {
     
