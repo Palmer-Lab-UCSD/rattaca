@@ -704,7 +704,7 @@ align_data <- function(genotypes,
     # align genotype and phenotype data for prediction
     rat_ids <- intersect(rownames(geno), rownames(phenotypes))
     geno <- geno[rat_ids,]
-    trait_dat <- phenotypes[rat_ids,]
+    trait_dat <- phenotypes[rat_ids]
     names(trait_dat) <- rat_ids
 
     out <- list(trait = trait, ids = rat_ids, geno_file = geno_file, geno = geno, pheno = trait_dat)
