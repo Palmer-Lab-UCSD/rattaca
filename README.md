@@ -31,9 +31,9 @@ First, simply clone the repository:
 git clone git@github.com:Palmer-Lab-UCSD/rattaca.git
 ```
 
-Optionally, to build the package documentation (which allows dynamic generation
-of RATTACA documentation in `R`). Assuming the cloned repository is in the 
-current working directory, start `R` and from the `R` command line:
+To build the package documentation (which allows dynamic generation
+of RATTACA documentation in `R`), navigate into the cloned repository, start 
+`R`, and from the `R` command line:
 
 ```R
 library(roxygen2)
@@ -47,8 +47,9 @@ current working directory:
 R CMD INSTALL [-l library_path] rattaca
 ```
 
-Alternatively, to install from within R, you'll first need to
-build the package. First, from the command line:
+Next, exit `R` to build the package. Navigate outside the cloned repository. 
+With the repo inside the current working directory, execute from the command 
+line:
 
 ```bash
 R CMD build rattaca
@@ -67,8 +68,8 @@ install.packages('rattaca-<version_number>.tar.gz', repos=NULL)
 
 ### Download a tagged version
 
-On this GitHub page, on the right-hand side, under
-`Releases` select `tags`.  Choose a tagged version,
+On this GitHub page, on the right-hand side, click
+`Releases`.  Choose a release version,
 and click on the compressed source code link for
 `.tar.gz`.  Given that this downloaded in the
 `Downloads` folder, you can install or build as above:
@@ -127,8 +128,8 @@ list contains
 ```R
 ls(out_pars)
 [1] "beta"  "beta.SE"   "LL"  "pearson_corr"
-[5] "r_sq"  "spearman_corr    "u"
-[9] "u.SE"  "Ve  "Vu"
+[5] "r_sq"  "spearman_corr"    "u"
+[9] "u.SE"  "Ve"  "Vu"
 ```
 
 where the parameter definitions are as follows:
@@ -268,13 +269,3 @@ and experimental design." bioRxiv (2023): 2023-09.
 
 * Endelman, J.B. 2011. Ridge regression and other kernels
 for genomic selection with R package rrBLUP. Plant Genome 4:250-255.
-beta
-beta.SE
-LL
-pearson_corr
-r_sq
-spearman_corr
-u
-u.SE
-Ve
-Vu
