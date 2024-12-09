@@ -607,6 +607,61 @@ sample_snps <- function(input_snps,
 }
 
 
+#' Store model parameters from a bpar file.
+#' 
+#' @description
+#' Produce one sample of n snps randomly sampled from a plink bim file.
+#'
+#' @export
+#'
+#' @param n_snps (int)
+#'      The desired number of variants to sample.
+#' 
+#' @param in_prefix (string)
+#'      The path and base filename (without extension) of the Plink dataset 
+#'      from which to sample snps.
+#' 
+#' @param outdir (string)
+#'      The directory path in which to save a Plink-formatted file of sampled 
+#'      variants.
+#' 
+#' @return A list with (1) the path to the sampled variants file and (2) the 
+#'      vector of sampled variants.
+#
+sample_plink_snps <- function(
+    n_snps,
+    in_prefix,
+    outdir) 
+{
+    bim_dat <- read.table(paste0(in_prefix,'.bim'))
+    all_snps <- bim_dat$V2
+    
+    use_snps <- sort(sample(all_snps, n_snps))
+    use_snps <- strsplit(use_snps,':')
+    chr <- sapply(use_snps, function(x) x[1])
+    pos <- sapply(use_snps, function(x) x[2])
+    snp_df <- data.frame(cbind(chr,pos))
+    snp_df$pos <- as.numeric(snp_df$pos)
+    extra_chrs <- c('MT', 'X', 'Y')
+    snp_num <- snp_df[!snp_df$chr %in% extra_chrs,]
+    snp_char <- snp_df[snp_df$chr %in% extra_chrs,]
+    snp_num$chr <- as.numeric(snp_num$chr)
+    snp_char$chr <- as.character(snp_char$chr)
+    snp_num <- snp_num[order(snp_num$chr, snp_num$pos),]
+    snp_char <- snp_char[order(snp_char$chr, snp_char$pos),]
+    snp_df <- rbind(snp_num, snp_char)
+    use_snps <- paste0(snp_df$chr, ':', snp_df$pos)
+
+    n_k <- paste0(n_snps/1000,'k')
+    filename <- paste0('snpset_', n_k, '_random')
+    outfile <- file.path(outdir, filename)
+
+    writeLines(use_snps, outfile)
+
+    return(list(snp_file = outfile, snps = use_snps))
+}
+
+
 #' Produce one or multiple sets of SNPs randomly sampled from an input
 #' SNP set read in from Plink files, then use the new sample(s) to produce
 #' a new Plink dataset(s)
@@ -702,7 +757,7 @@ align_data <- function(genotypes,
     geno <- genotypes$geno
         
     # align genotype and phenotype data for prediction
-    rat_ids <- intersect(rownames(geno), rownames(phenotypes))
+    rat_ids <- intersect(rownames(geno), names(phenotypes))
     geno <- geno[rat_ids,]
     trait_dat <- phenotypes[rat_ids]
     names(trait_dat) <- rat_ids
@@ -1302,10 +1357,14 @@ train_test_split <- function(
     # set up training data
     train_rfids <- sample(rownames(trait_dat), train_split * nrow(trait_dat))
     train_df <- trait_dat[train_rfids,, drop=FALSE]
+    train_df$rfid <- rownames(train_df)
+    train_df <- train_df[,c(2,1)]
 
     # set up test data
     test_rfids <- setdiff(rownames(trait_dat), train_rfids)
     test_df <- trait_dat[test_rfids,, drop=FALSE]
+    test_df$rfid <- rownames(test_df)
+    test_df <- test_df[,c(2,1)]
 
     # save data
     train_path <- file.path(train_dir, paste0(trait,'_train_', train_split, '.csv'))
