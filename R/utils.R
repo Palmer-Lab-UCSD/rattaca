@@ -68,11 +68,14 @@ load_and_prepare_plink_data <- function(prefix_name)
 #' @param trait_name (character)
 #'      name of column whose values consists of noramlized
 #'      trait measurements
+#' @param format (string)
+#'      The data type in which to output results 
+#'      (either 'data.frame' or 'numeric')
 #' 
 #' @return A dataframe with n_sample rows x 1 column, rows named with sample IDs, 
 #'      or a numeric vector named with sample IDs.
 #
-load_and_prepare_trait_data <- function(
+prep_trait_data <- function(
     filename,
     id_column,
     trait_name,
@@ -1378,7 +1381,7 @@ train_test_split <- function(
     trait_dat <- pheno_dat[,c('rfid',trait)]
     trait_dat <- trait_dat[complete.cases(trait_dat),]
     rownames(trait_dat) <- trait_dat$rfid
-    trait_dat <- load_and_prepare_trait_data(phtypes_file, 'rfid', trait)
+    trait_dat <- prep_trait_data(phtypes_file, 'rfid', trait, 'data.frame')
 
     # set up training data
     train_rfids <- sample(rownames(trait_dat), train_split * nrow(trait_dat))
