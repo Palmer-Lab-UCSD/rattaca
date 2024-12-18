@@ -63,26 +63,31 @@ load_and_prepare_plink_data <- function(prefix_name)
 #'
 #' @param filename (character)
 #'      path to trait csv table
-#' @param col_to_rownames (character)
-#'      name of column whose values will be the row index names
+#' @param id_column (character)
+#'      name of column with animal IDs whose values will be the data index names
 #' @param trait_name (character)
 #'      name of column whose values consists of noramlized
 #'      trait measurements
 #' 
-#' @return ((n sample, 1) dataframe)
-#'      row names are sample id's, column lone column are 
+#' @return A dataframe with n_sample rows x 1 column, rows named with sample IDs, 
+#'      or a numeric vector named with sample IDs.
 #
-load_and_prepare_trait_data <- function(filename,
-                                        col_to_rownames,
-                                        trait_name)
+load_and_prepare_trait_data <- function(
+    filename,
+    id_column,
+    trait_name,
+    format = c('numeric','data.frame'))
 {
-    data <- utils::read.csv(filename)[,c(col_to_rownames,
-                                         trait_name)]
-
+    data <- utils::read.csv(filename)[,c(id_column, trait_name)]
     data <- data[!is.na(data[,trait_name]), ]
+    rownames(data) <- data[, id_column]
+    data[,id_column] <- NULL
 
-    rownames(data) <- data[, col_to_rownames]
-    data[,col_to_rownames] <- NULL
+    if (format == 'numeric') {
+        ids <- rownames(data)
+        data <- as.numeric(data[,trait_name])
+        names(data) <- ids
+    }
 
     return(data)
 }
@@ -270,6 +275,27 @@ get_phenotyped_ids <- function(phenotype_data, id_column, output_dir, trait_colu
     }
 }
 
+#' Save a Plink-formatted file listing all samples input in a vector.
+#'
+#' @export
+#' 
+#' @param ids (character)
+#'      A vector of sample IDs.
+#' @param output_dir (string)
+#'      The directory in which the Plink-formatted IDs file will be 
+#'      saved.
+#' @param filename (string)
+#'      (default 'plink_ids') The desired file name
+#'
+#' @return A list containing (1) the file path to the Plink-formatted 
+#'      IDs file and (2) a vector of IDs.
+#
+format_ids_file <- function(ids, output_dir, filename='plink_ids') {
+    ids_file <- file.path(output_dir, filename)
+    write.table(data.frame(fam = 0, id = ids), ids_file,
+        sep = '\t', row.names = FALSE, col.names = FALSE, quote = FALSE)
+    return(ids_file)
+}
 
 #' Modify a Plink genotype dataset to produce a new Plink dataset
 #' of system files, with option to read data into R
