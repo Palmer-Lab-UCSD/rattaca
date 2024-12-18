@@ -1148,7 +1148,7 @@ plot_kfold <- function(kfold_results, output_dir) {
     lms <- list()
     
     # plot 1: zoomed to fit
-    pdf(paste0(output_dir, '/', trait, '_', num_folds, 'fold_crossval_zoomed.pdf'), 6, 6)
+    png(file.path(output_dir, paste0(trait, '_', num_folds, 'fold_crossval_zoomed.png')), width=7, height=7, units='in', res=300)
 
     # empty plot
     with(test_df, plot(obs, pred, col=0,
@@ -1189,7 +1189,7 @@ plot_kfold <- function(kfold_results, output_dir) {
     r <- paste0('r: ', round(r,3))
     rho <- paste0("rho: ", round(rho,3))
     m <- paste0("m: ", round(mean(lm_slope),3))
-    str <- paste('mean', r_sq, r, rho, m, sep = "  |  ")
+    str <- paste('mean', paste(r_sq, r, rho, m, sep = "  |  "))
     # abline(lm, lwd =2)
     mtext(str,side=3,adj=0.05,line=0.2,cex=1.1)
 
@@ -1200,7 +1200,7 @@ plot_kfold <- function(kfold_results, output_dir) {
     trait_min <- min(c(test_df$obs, test_df$pred))
     trait_max <- max(c(test_df$obs, test_df$pred))
 
-    pdf(paste0(output_dir, '/', trait, '_', num_folds, 'fold_crossval_scaled.pdf'), 6, 6)
+    png(file.path(output_dir, paste0(trait, '_', num_folds, 'fold_crossval_scaled.png')), width=7, height=7, units='in', res=300)
 
     with(test_df, plot(obs, pred, col=0, xlim=c(trait_min, trait_max), ylim=c(trait_min, trait_max),
         xlab='Observed', ylab='Predicted'))
@@ -1240,7 +1240,7 @@ plot_kfold <- function(kfold_results, output_dir) {
     r <- paste0('r: ', round(r,3))
     rho <- paste0("rho: ", round(rho,3))
     m <- paste0("m: ", round(mean(lm_slope),3))
-    str <- paste('mean', r_sq, r, rho, m, sep = "  |  ")
+    str <- paste('mean', paste(r_sq, r, rho, m, sep = "  |  "))
     # abline(lm, lwd =2)
     mtext(str,side=3,adj=0.05,line=0.2,cex=1.1)
 
