@@ -991,7 +991,7 @@ plot_pca <- function(plink_pca,
 #' @export
 #'
 #' @param cv_results (list)
-#'      A list with results from one k-fold cross-validations, as output by 
+#'      A list with results from one k-fold cross-validation, as output by 
 #'      kfold_cv(). 
 #' 
 #' @param metric (character)
@@ -1074,7 +1074,7 @@ best_kfold_mod <- function(crossval_list)
 #'      A list with results from one k-fold cross-validations, as output by 
 #'      kfold_cv(). 
 #' #' @param output_dir (character)
-#'      The directory in which to save pdf plots 
+#'      The directory in which to save results
 #' 
 #' @return None. Results are saved to file
 #
@@ -1133,7 +1133,7 @@ save_cv_results <- function(cv_results, output_dir) {
 #'      performance metrics from a k-fold cross-validation)
 #' 
 #' @param output_dir (string)
-#'      The directory in which the pdf files will be saved
+#'      The directory in which the png files will be saved
 #' 
 #' @return None. Plots are saved to files, without output into the R 
 #'      environment
