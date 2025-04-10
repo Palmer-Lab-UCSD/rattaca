@@ -1267,6 +1267,10 @@ plot_kfold <- function(kfold_results, output_dir) {
 #'      Either a list or vector of trait names whose respective trait
 #'      predictions will be merged
 #' 
+#' @param composite_traits (character)
+#'      (default NULL) A vector of composite trait names whose respective 
+#'      composite trait scores will be merged
+#' 
 #' @param output_dir (character)
 #'      (default NULL) The directory in which the csv of merged trait
 #'      predictions will be saved, if desired.
@@ -1280,7 +1284,8 @@ plot_kfold <- function(kfold_results, output_dir) {
 #
 # function to merge all trait predictions into one file
 merge_preds <- function(directory, # directory containing trait-named directories
-                        traits,    # list or vector of trait names
+                        traits,    # list or vector of trait names,
+                        composite_traits=NULL, # list or vector of composite trait names
                         output_dir=NULL, # directory to save the file, if desired
                         basename=NULL)
 {
@@ -1289,20 +1294,28 @@ merge_preds <- function(directory, # directory containing trait-named directorie
     
     # read in predictions for each trait
     for (trait in traits){
-    
-        trait_df <- read.csv(paste0(directory, '/', trait, '/', trait, '_predictions.csv'))
+        trait_df <- read.csv(file.path(directory, trait, paste0(trait, '_predictions.csv')))
         list_of_dfs[[trait]] <- trait_df
-    
     }
 
+    # read in scores for each composite trait
+    for (trait in composite_traits){
+        trait_df <- read.csv(file.path(directory, trait, paste0(trait, '_composite_scores.csv')))
+        list_of_dfs[[trait]] <- trait_df
+    }
+    
     # merge all dataframes
     all_preds <- Reduce(function(x,y) merge(x, y, all=T), list_of_dfs)
     
     if (!is.null(output_dir)){
-        write.csv(all_preds, paste0(output_dir, '/', basename, '_merged_predictions.csv'),
-                  row.names=F, quote=F, na='')
-
+        if (is.null(composite_traits)) {
+            outfile <- file.path(output_dir, paste0(basename, '_merged_predictions.csv'))
+        } else {
+            outfile <- file.path(output_dir, paste0(basename, '_merged_preds_composite_scores.csv'))
+        }
+        write.csv(all_preds, outfile, row.names=F, quote=F, na='')
     }
+
     return(all_preds)
                         
 }
@@ -1616,6 +1629,8 @@ make_composite_trait <- function(
     title_line=7,
     output_dir = NULL)
 {
+    library(corrplot) # for plotting composite trait correlations
+
     metric <- match.arg(metric)
     stat <- match.arg(stat)
 
