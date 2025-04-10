@@ -11,7 +11,7 @@ save_cv_results(cv_results, output_dir)
      A list with results from one k-fold cross-validations, as output by 
      kfold_cv(). 
 #' @param output_dir (character)
-     The directory in which to save pdf plots}
+     The directory in which to save results}
 }
 \value{
 None. Results are saved to file

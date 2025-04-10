@@ -9,7 +9,7 @@ best_fold(cv_results, metric = "pearson")
 }
 \arguments{
 \item{cv_results}{(list)
-A list with results from one k-fold cross-validations, as output by 
+A list with results from one k-fold cross-validation, as output by 
 kfold_cv().}
 
 \item{metric}{(character)

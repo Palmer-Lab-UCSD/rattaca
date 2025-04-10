@@ -14,7 +14,7 @@ $test (a list of k sets oftrait observations, predictions, and
 performance metrics from a k-fold cross-validation)}
 
 \item{output_dir}{(string)
-The directory in which the pdf files will be saved}
+The directory in which the png files will be saved}
 }
 \value{
 None. Plots are saved to files, without output into the R 
