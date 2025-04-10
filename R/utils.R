@@ -469,7 +469,7 @@ make_plink_dataset <- function(input_genotypes,
         system2(plink2, args)
 
         # remove the intermediate plink files
-        system2('rm', args=c(paste0(plink_file_name,'bed'), 
+        system2('rm', args=c(paste0(plink_file_name,'.bed'), 
             paste0(plink_file_name,'.bim'), paste0(plink_file_name,'.fam')))
         
         # move LD-pruned SNP files to SNP directory
