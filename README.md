@@ -40,13 +40,6 @@ library(roxygen2)
 roxygenize()
 ```
 
-Then install from the command line. Assuming the cloned repository is in the 
-current working directory:
-
-```bash
-R CMD INSTALL [-l library_path] rattaca
-```
-
 Next, exit `R` to build the package. Navigate outside the cloned repository. 
 With the repo inside the current working directory, execute from the command 
 line:
@@ -55,15 +48,33 @@ line:
 R CMD build rattaca
 ```
 
-... which will generate a tar ball `rattaca-<version_number>.tar.gz` in the
-current working directory.  Then start `R`
-and in the `R` command line:
+... which will generate a tar ball `rattaca_<version_number>.tar.gz` in the
+current working directory.  
 
-```R
-install.packages('rattaca-<version_number>.tar.gz', repos=NULL)
+You can install from the command line or within R. To install from the command line, 
+assuming the cloned repository is in the current working directory, execute:
+
+```bash
+R CMD INSTALL rattaca
 ```
 
-... ensuring `repos` is set to `NULL` to install from a local package.
+... to install the package binary in the default location on your local machine.  
+
+Alternatively, to save within a specific directory (such as within a conda environment 
+library), use the `-l` option to set the desired parent directory for the package binary:
+
+```bash
+R CMD INSTALL -l path/to/location rattaca
+```
+
+To install from `R`, restart `R` and in the command line execute:
+
+```R
+install.packages('path/to/rattaca_<version_number>.tar.gz', 'path/to/parent/directory', repos=NULL)
+```
+
+... ensuring `repos` is set to `NULL` to install from a local package. The parent directory path 
+may be excluded when saving to a default location. The downloaded tarball can be deleted after installation.
 
 
 ### Download a tagged version
