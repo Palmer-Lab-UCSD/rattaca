@@ -53,10 +53,10 @@ R CMD build rattaca
 current working directory.  
 
 You can install from the command line or within R. To install from the command line, 
-assuming the cloned repository is in the current working directory, execute:
+assuming the RATTACA tar ball is in the current working directory, execute:
 
 ```bash
-R CMD INSTALL rattaca
+R CMD INSTALL rattaca_<version_number>.tar.gz
 ```
 
 ... to install the package binary in the default location on your local machine.  
