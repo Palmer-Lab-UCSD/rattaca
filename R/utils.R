@@ -1359,7 +1359,13 @@ merge_preds <- function(directory, # directory containing trait-named directorie
 #
 trait_groups <- function(preds, col=NULL, n_groups=2) {
 
-    if (class(preds)=='data.frame') { preds <- preds[[col]]}
+    # ensure n_groups is numeric
+    n_groups = as.numeric(n_groups)
+
+    # extract predictions
+    if (is.data.frame(preds) && !is.null(col)) {
+        preds <- preds[[col]]
+    }
     idx <- !is.na(preds)
 
     trait_quantiles <- quantile(preds[idx], probs = seq(0, 1, by = 1/n_groups))
