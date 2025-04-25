@@ -843,6 +843,11 @@ format_obs_pred <- function(lst) # list with trait observations and predictions
 #' @param trait (character)
 #'      The name of the trait to be analyzed
 #' 
+#' @param n_groups (integer)
+#'      (default 2) The number of groups for which to denote assignments. 
+#'      2 will assign 'high' and 'low' groups, 3 will assign 'high', 'med', 
+#'      and 'low', higher numbers will return groups numbered by quantile.
+#' 
 #' #' @param output_dir (character)
 #'      (default NULL) The directory in which to save a dataframe of 
 #'      trait predictions, prediction ranks, and z-scores, if desired
@@ -850,24 +855,35 @@ format_obs_pred <- function(lst) # list with trait observations and predictions
 #' @return A list containing (1) the trait analyzed, (2) all prediction ranks,
 #'      and (3) all prediction z-scores
 #
-get_ranks_zscores <- function(predictions, # named vector of trait predictions
-                      trait,       # character string
-                      output_dir=NULL) # character directory path
+get_ranks_zscores <- function(
+    predictions, # named vector of trait predictions
+    trait,       # character string
+    n_groups = 2,
+    output_dir = NULL) # character directory path
 {
 
-    pred_rank <- rank(predictions)
-    pred_zscore <- zscore(predictions)
+    pred_ranks <- rank(predictions)
+    pred_zscores <- zscore(predictions)
+    pred_groups <- trait_groups(
+        preds = predictions, 
+        col = trait,
+        n_groups = n_groups)
     
     if (!is.null(output_dir)){
-        out_df <- data.frame(rfid = names(predictions), pred = predictions, 
-                             rank = pred_rank, zscore = pred_zscore)
-        names(out_df) <- c('rfid', trait, paste0(trait, '_rank'), paste0(trait, '_zscore'))
+        out_df <- data.frame(
+            rfid = names(predictions), 
+            pred = predictions, 
+            rank = pred_ranks, 
+            zscore = pred_zscores
+            group = pred_groups)
+
+        names(out_df) <- c('rfid', trait, paste0(trait, '_rank'), paste0(trait, '_zscore'), paste0(trait, '_group'))
         write.csv(out_df, paste0(output_dir, '/', trait, '_predictions.csv'),
                              row.names=F, quote=F)
 
     }
                        
-    return(list(trait = trait, rank = pred_rank, z_score = pred_zscore))    
+    return(list(trait = trait, rank = pred_ranks, z_score = pred_zscores, group = pred_groups))    
 
 }
 
