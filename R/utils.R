@@ -1341,11 +1341,13 @@ merge_preds <- function(directory, # directory containing trait-named directorie
 #'
 #' @export
 #'
-#' @param preds (dataframe)
-#'      A dataframe with at least one column of trait predictions.
+#' @param preds (list or dataframe)
+#'      A list of trait predictions or dataframe with at least one column of 
+#'      trait predictions.
 #' 
 #' @param col (character)
-#'      The name of the dataframe column on which to designate group assignments.
+#'      (default NULL) If preds is a dataframe, the name of the dataframe column 
+#'      on which to designate group assignments.
 #' 
 #' @param n_groups (int)
 #'      (default 2) The number of desired groups to split assignments into. The
@@ -1355,16 +1357,18 @@ merge_preds <- function(directory, # directory containing trait-named directorie
 #' 
 #' @return A vector of group assignments in the same order as col.
 #
-trait_groups <- function(preds, col, n_groups=2) {
-    group_col <- paste0(col, '_', n_groups, 'group')
-    idx <- !is.na(preds[[col]])
-    trait_quantiles <- quantile(preds[[col]][idx], probs = seq(0, 1, by = 1/n_groups))
+trait_groups <- function(preds, col=NULL, n_groups=2) {
+
+    if (class(preds)=='data.frame') { preds <- preds[[col]]}
+    idx <- !is.na(preds)
+
+    trait_quantiles <- quantile(preds[idx], probs = seq(0, 1, by = 1/n_groups))
     if (n_groups==2) {
-        groups <- sapply(preds[[col]], function(x) ifelse(x > median(preds[[col]]), 'high', 'low'))
+        groups <- sapply(preds, function(x) ifelse(x > median(preds), 'high', 'low'))
     } else if (n_groups==3) {
-        groups <- cut(preds[[col]], breaks = trait_quantiles, labels=c('low','mid','high'), include.lowest=T)
+        groups <- cut(preds, breaks = trait_quantiles, labels=c('low','mid','high'), include.lowest=T)
     } else if (n_groups > 3) {
-        groups <- cut(preds[[col]], breaks = trait_quantiles, labels=F, include.lowest=T)
+        groups <- cut(preds, breaks = trait_quantiles, labels=F, include.lowest=T)
     }
     return(groups)
 }
