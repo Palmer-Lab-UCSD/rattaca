@@ -25,6 +25,7 @@ with the following `R` packages:
 * roxygen2 (>=2.7.0) (optional: to build package documentaion)
 * viridis (>=0.6.2) (for optional plotting)
 * scales (>=1.2.0) (for optional plotting)
+* corrplot (>=0.92) (for optional plotting)
 
 First, simply clone the repository:
 ```bash
