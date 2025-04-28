@@ -96,34 +96,6 @@ prep_trait_data <- function(
 }
 
 
-# TODO add arg type
-
-#' Specify command line argument values
-#'
-#' @export
-#'
-#' @param default_val (NULL | interger | double | string)
-#'      (default NULL)
-#' @param help (string)
-#'      (default NULL) documentation to be printed with --help
-#' @param required (bool) 
-#'      (default TRUE) whether the argument is required input
-#'
-#' @return (list) with correct key value pairs for parsing
-#
-argument <- function(default_val=NULL,
-                     help=NULL,
-                     required=TRUE, type="character")
-{
-
-    if (is.null(default_val) || storage.mode(default_val) == type)
-        return(list(val=default_val, help=help,
-                    type=type, required=required))
-
-    stop("Default value doesn't match specified type")
-}
-
-
 # TO DO: when processing multiple traits, exclude any rows 
 # that have NAs for all traits
 
