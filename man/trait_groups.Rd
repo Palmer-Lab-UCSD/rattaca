@@ -5,14 +5,16 @@
 \title{Get assignment group designations (e.g., high vs low) for a set of 
      predictions.}
 \usage{
-trait_groups(preds, col, n_groups = 2)
+trait_groups(preds, col = NULL, n_groups = 2)
 }
 \arguments{
-\item{preds}{(dataframe)
-A dataframe with at least one column of trait predictions.}
+\item{preds}{(list or dataframe)
+A list of trait predictions or dataframe with at least one column of 
+trait predictions.}
 
 \item{col}{(character)
-The name of the dataframe column on which to designate group assignments.}
+(default NULL) If preds is a dataframe, the name of the dataframe column 
+on which to designate group assignments.}
 
 \item{n_groups}{(int)
 (default 2) The number of desired groups to split assignments into. The

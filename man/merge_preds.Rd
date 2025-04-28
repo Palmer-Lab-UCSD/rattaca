@@ -6,7 +6,13 @@
 different traits, merge all files into a single csv of results for
 all traits}
 \usage{
-merge_preds(directory, traits, output_dir = NULL, basename = NULL)
+merge_preds(
+  directory,
+  traits,
+  composite_traits = NULL,
+  output_dir = NULL,
+  basename = NULL
+)
 }
 \arguments{
 \item{directory}{(character)
@@ -20,6 +26,10 @@ get_ranks_zscores()), e.g.:
 \item{traits}{(list or character)
 Either a list or vector of trait names whose respective trait
 predictions will be merged}
+
+\item{composite_traits}{(character)
+(default NULL) A vector of composite trait names whose respective 
+composite trait scores will be merged}
 
 \item{output_dir}{(character)
 (default NULL) The directory in which the csv of merged trait
