@@ -752,11 +752,6 @@ format_obs_pred <- function(lst) # list with trait observations and predictions
 #' @param trait (character)
 #'      The name of the trait to be analyzed
 #' 
-#' @param n_groups (integer)
-#'      (default 2) The number of groups for which to denote assignments. 
-#'      2 will assign 'high' and 'low' groups, 3 will assign 'high', 'med', 
-#'      and 'low', higher numbers will return groups numbered by quantile.
-#' 
 #' #' @param output_dir (character)
 #'      (default NULL) The directory in which to save a dataframe of 
 #'      trait predictions, prediction ranks, and z-scores, if desired
@@ -764,35 +759,24 @@ format_obs_pred <- function(lst) # list with trait observations and predictions
 #' @return A list containing (1) the trait analyzed, (2) all prediction ranks,
 #'      and (3) all prediction z-scores
 #
-get_ranks_zscores <- function(
-    predictions, # named vector of trait predictions
-    trait,       # character string
-    n_groups = 2,
-    output_dir = NULL) # character directory path
+get_ranks_zscores <- function(predictions, # named vector of trait predictions
+                      trait,       # character string
+                      output_dir=NULL) # character directory path
 {
 
-    pred_ranks <- rank(predictions)
-    pred_zscores <- zscore(predictions)
-    pred_groups <- trait_groups(
-        preds = predictions, 
-        col = trait,
-        n_groups = n_groups)
+    pred_rank <- rank(predictions)
+    pred_zscore <- zscore(predictions)
     
     if (!is.null(output_dir)){
-        out_df <- data.frame(
-            rfid = names(predictions), 
-            pred = predictions, 
-            rank = pred_ranks, 
-            zscore = pred_zscores,
-            group = pred_groups)
-
-        names(out_df) <- c('rfid', trait, paste0(trait, '_rank'), paste0(trait, '_zscore'), paste0(trait, '_group'))
-        write.csv(out_df, file.path(output_dir, paste0(trait, '_predictions.csv')),
+        out_df <- data.frame(rfid = names(predictions), pred = predictions, 
+                             rank = pred_rank, zscore = pred_zscore)
+        names(out_df) <- c('rfid', trait, paste0(trait, '_rank'), paste0(trait, '_zscore'))
+        write.csv(out_df, paste0(output_dir, '/', trait, '_predictions.csv'),
                              row.names=F, quote=F)
 
     }
                        
-    return(list(trait = trait, rank = pred_ranks, z_score = pred_zscores, group = pred_groups))    
+    return(list(trait = trait, rank = pred_rank, z_score = pred_zscore))    
 
 }
 
@@ -1507,10 +1491,6 @@ summarize_preds <- function(
 #' @param traits (character)
 #'      Vector of trait names to be included in calculating the composite trait.
 #' 
-#' @param n_groups (integer)
-#'      (default 2) The number of desired group designations for the composite
-#'      trait.
-#' 
 #' @param negate (logical)
 #'      A logical vector denoting, in the order of 'traits', whether to negate 
 #'      the predicted values for each trait. Negating multiplies each prediction 
@@ -1558,15 +1538,14 @@ summarize_preds <- function(
 make_composite_trait <- function(
     preds, # df or path to predictions csv
     traits, # vector of trait names desired to calculate a composite trait
-    n_groups = 2, # number of desired group designations for the composite trait
     negate, # logical vector of length(traits): whether to multiply each trait by -1 to align desired high/low values (turns high to low, low to high)
     invert, # logical vector of length(traits): whether to perform 1/trait (turns intermediate values high/low and high/low values intermediate)
     metric = c('rank', 'zscore'), # metric to use in calculating the composite trait
     stat = c('mean', 'median'), # the statistic to use in calculating the composite trait
     new_trait, # new variable name for the composite trait
-    plot_mar = c(0, 0, 8, 0), 
-    plot_oma = c(0, 0, 2, 2),
-    title_line = 7,
+    plot_mar=c(0, 0, 8, 0), 
+    plot_oma=c(0, 0, 2, 2),
+    title_line=7,
     output_dir = NULL)
 {
     library(corrplot) # for plotting composite trait correlations
@@ -1642,8 +1621,7 @@ make_composite_trait <- function(
 
     new_trait_metrics <- get_ranks_zscores(
         predictions = new_trait_vals,
-        trait = new_trait,
-        n_groups = n_groups)
+        trait = new_trait)
 
     # save new trait values, ranks, zscores to df
     new_vals_df <- data.frame(
@@ -1654,10 +1632,8 @@ make_composite_trait <- function(
     new_metrics_df <- data.frame(
         rfid = names(new_trait_metrics$rank),
         rank = new_trait_metrics$rank,
-        zscore = new_trait_metrics$z_score,
-        group = new_trait_metrics$group)
-    names(new_metrics_df) <- c('rfid', paste0(new_trait, '_rank'), 
-        paste0(new_trait, '_zscore'), paste0(new_trait, '_zscore'))
+        zscore = new_trait_metrics$z_score)
+    names(new_metrics_df) <- c('rfid', paste0(new_trait, '_rank'), paste0(new_trait, '_zscore'))
 
     out_df <- merge(new_vals_df, new_metrics_df, by = 'rfid')
 
