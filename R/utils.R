@@ -1981,3 +1981,15 @@ density_assignments <- function(
     }
 
 }
+
+#' Print time-stamped messages to stdout.
+#' 
+#' @export
+#'
+#' @param str (character)
+#'      A text string to print.
+
+printout <- function(str) {
+    cat(paste0('\n[', format(Sys.time(), '%Y-%m-%d %H:%M:%S'), ']'), 
+        str, '\n\n')
+}
