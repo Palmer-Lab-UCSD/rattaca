@@ -285,28 +285,28 @@ pca_plink_genotypes <- function(train_genotypes, test_genotypes, trait)
     merge_args <- c('-bfile', train_file, 
                     '--bmerge', test_file,
                     '--make-bed',
-                    '--out', paste0(pca_dir, '/', trait, '_merged')
+                    '--out', file.path(pca_dir, paste0(trait, '_merged'))
                     )
     
     # print the plink call to the user
-    print(paste('Plink merge call:', plink2, paste(merge_args, collapse=' ')))
+    cat('Plink merge call:', plink2, paste(merge_args, collapse=' '), '\n')
 
     # run plink
     system2(plink1, merge_args)
 
     # conduct PCA
-    pca_args <- c('-bfile', paste0(pca_dir, '/', trait, '_merged'),
+    pca_args <- c('-bfile', file.path(pca_dir, paste0(trait, '_merged')),
                   '--pca',
-                  '--out', paste0(pca_dir, '/', trait, '_pca')
+                  '--out', file.path(pca_dir, paste0(trait, '_pca'))
                   )
     
     # run plink
     system2(plink2, pca_args)
 
     # print the plink call to the user
-    print(paste('Plink PCA call:', plink2, paste(pca_args, collapse=' ')))
+    cat('Plink PCA call:', plink2, paste(pca_args, collapse=' '), '\n')
     
-    return(list(trait = trait, pca_file = paste0(pca_dir, '/', trait, '_pca')))
+    return(list(trait = trait, pca_file = file.path(pca_dir, paste0(trait, '_pca'))))
 
 }
 
