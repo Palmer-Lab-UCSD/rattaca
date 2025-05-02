@@ -439,6 +439,13 @@ get_common_snpset <- function(train_genotypes, test_genotypes) {
         print(str(test_genotypes))
     }
 
+   # save all snps common to train/test sets from which to sample a common set of snps
+    all_snps <- intersect(all_test_snps, all_train_snps)
+    
+    return(all_snps)
+
+}
+
 
 #' Produce one or multiple sets of SNPs randomly sampled
 #' from an input SNP set
