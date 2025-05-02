@@ -418,26 +418,26 @@ get_common_snpset <- function(train_genotypes, test_genotypes) {
     if (is.character(train_genotypes)) {
         all_train_snps <- genio::read_bim(paste0(train_genotypes, '.bim'))
         all_train_snps <- all_train_snps$id
-    } else if (identical(names(train_genotypes), c('geno_file', 'geno'))) {
+    } else if ('geno_file' %in% names(train_genotypes)) {
         all_train_snps <- colnames(train_genotypes$geno)
     } else if (is.matrix(train_genotypes)) {
         all_train_snps <- colnames(train_genotypes)
-    }    
+    } else {
+        cat('Check train_genotypes format: \n')
+        print(str(train_genotypes))
+    }   
 
     if (is.character(test_genotypes)) {
         all_test_snps <- genio::read_bim(paste0(test_genotypes, '.bim'))
         all_test_snps <- all_test_snps$id
-    } else if (identical(names(test_genotypes), c('geno_file', 'geno'))) {
+    } else if ('geno_file' %in% names(test_genotypes)) {
         all_test_snps <- colnames(test_genotypes$geno)
     } else if (is.matrix(test_genotypes)) {
         all_test_snps <- colnames(test_genotypes)
-    }    
-    
-    # save all snps common to train/test sets from which to sample a common set of snps
-    all_snps <- intersect(all_test_snps, all_train_snps)
-    
-    return(all_snps)
-}
+    } else {
+        cat('Check test_genotypes format: \n')
+        print(str(test_genotypes))
+    }
 
 
 #' Produce one or multiple sets of SNPs randomly sampled
