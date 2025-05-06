@@ -1237,9 +1237,11 @@ merge_preds <- function(directory, # directory containing trait-named directorie
     }
 
     # read in scores for each composite trait
-    for (trait in composite_traits){
-        trait_df <- read.csv(file.path(directory, trait, paste0(trait, '_composite_scores.csv')))
-        list_of_dfs[[trait]] <- trait_df
+    if (!is.null(composite_traits)) {
+        for (trait in composite_traits){
+            trait_df <- read.csv(file.path(directory, trait, paste0(trait, '_composite_scores.csv')))
+            list_of_dfs[[trait]] <- trait_df
+        }
     }
     
     # merge all dataframes
