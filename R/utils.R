@@ -440,6 +440,10 @@ get_snps_from_bpar <- function(bpar_file, outdir=NULL) {
 #'      a test genotype data object as produced by make_plink_dataset(), 
 #'      or a named test genotype matrix with RFID rows and variant columns
 #'
+#' @param out_prefix (character)
+#'      (Default NULL) Directory path + file stem. The path in which to save the 
+#'      set of common SNPs to file
+#' 
 #' @return A vector of all SNP variants found in both datasets.
 #
 get_common_snpset <- function(train_genotypes, test_genotypes, out_prefix=NULL) {
@@ -493,13 +497,18 @@ get_common_snpset <- function(train_genotypes, test_genotypes, out_prefix=NULL) 
     # save all snps common to train/test sets from which to sample a common set of snps
     all_snps <- intersect(all_test_snps, all_train_snps)
     
+    out <- list(snps = all_snps, file = NULL)
+
     # save a plink-formatted variant list
     if (!is.null(out_prefix)) {
         train <- basename(train_genotypes)
         test <- basename(test_genotypes)
-        writeLines(all_snps, paste0(out_prefix, '_common_snps'))
+        outfile <- paste0(out_prefix, '_common_snps')
+        writeLines(all_snps, outfile)
+        out$file <- outfile
     }
-    return(all_snps)
+
+    return(out)
 }
 
 
