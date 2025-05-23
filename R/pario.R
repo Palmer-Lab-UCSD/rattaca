@@ -104,12 +104,27 @@ read_pars <- function(filename)
 #'      genotype files used for fitting
 #' @param pars (list) output from rattaca::fit
 #' @param filename (character) path of file to write
-#'
+#' @param genotype_source (character) path to the original file from which 
+#' training-set genotypes (in genotype_prefix file) are derived
+#' @param trait_source (character) Path to the original file from which 
+#' training-set trait values (in trait_file) are derived
+#' @param trait_variable (character) If the trait name (input for param 'trait') 
+#' used for predictions is different from the name used in the original dataset, 
+#' the column header for the source training phenotype data 
 #
-write_pars <- function(trait, trait_file, genotype_prefix,
-                      pars, filename)
-{
+write_pars <- function(
+    trait, trait_file, genotype_prefix, pars, filename,
+    genotype_source = NULL, # the training geno input file (eg. round 10.5)
+    trait_source = NULL, # the pheno datafile used to produce the trait_file
+    trait_variable = NULL # the official trait variable name from trait_source
+) {
+
     sess_info <- utils::sessionInfo()
+
+    # append .bpar file extension to output file name if needed
+    if (!grepl('.bpar$', filename)) {
+        filename <- paste0(filename, '.bpar')
+    }
 
     fconn <- file(description=filename,
                   open="wt",
@@ -121,14 +136,23 @@ write_pars <- function(trait, trait_file, genotype_prefix,
                  paste(paste0(META_PREFIX, "user"),
                        Sys.getenv("USER"),
                        sep=META_KEY_VAL_DELIM),
-                 paste(paste0(META_PREFIX, "trait"),
+                 paste(paste0(META_PREFIX, "trait_name"),
                        trait,
                        sep=META_KEY_VAL_DELIM),
                  paste(paste0(META_PREFIX,"trait_file"),
                        trait_file,
                        sep=META_KEY_VAL_DELIM),
-                 paste(paste0(META_PREFIX, "plink_genotypes_prefix"),
+                 paste(paste0(META_PREFIX, "trait_source"),
+                       trait_source,
+                       sep=META_KEY_VAL_DELIM),
+                 paste(paste0(META_PREFIX, "trait_source_variable"),
+                       trait_variable,
+                       sep=META_KEY_VAL_DELIM),
+                 paste(paste0(META_PREFIX, "genotypes_file"),
                        genotype_prefix,
+                       sep=META_KEY_VAL_DELIM),
+                 paste(paste0(META_PREFIX, "genotypes_source"),
+                       genotype_source,
                        sep=META_KEY_VAL_DELIM),
                  paste(paste0(META_PREFIX,"R_version"),
                        paste(sess_info$R.version$major,
@@ -157,10 +181,13 @@ write_pars <- function(trait, trait_file, genotype_prefix,
 
     writeLines(pkg_info, con=fconn)
     
-    writeLines(c(paste(paste0(META_PREFIX, "variance_u"),
+    writeLines(c(paste(paste0(META_PREFIX, "n_snps"),
+                       length(pars$u),
+                       sep=META_KEY_VAL_DELIM),
+                 paste(paste0(META_PREFIX, "variance_u"),
                        pars$Vu,
                        sep=META_KEY_VAL_DELIM),
-                 paste(paste0(META_PREFIX, "variance_e"),
+                paste(paste0(META_PREFIX, "variance_e"),
                        pars$Ve,
                        sep=META_KEY_VAL_DELIM),
                  paste(paste0(META_PREFIX, "log_likelihood"),
