@@ -1915,3 +1915,44 @@ printout <- function(str) {
     cat(paste0('\n[', format(Sys.time(), '%Y-%m-%d %H:%M:%S'), ']'), 
         str, '\n\n')
 }
+
+
+#' Save training variant IDs and phenotype data from a .bpar file.
+#' 
+#' @description
+#' Reads a model parameter (.bpar) file to extract and save copies of phenotype 
+#' data and variant IDs used to train the input RATTACA model.
+#'
+#' @export
+#'
+#' @param bpar_file (character)
+#'      Path to a model parameter file from which to extract metadata.
+#' 
+#' @return None. Saves a text file of variant IDs and a csv file of training rfids 
+#' and trait data into the same directory as the parameter file.
+#
+save_training_data <- function(bpar_file) {
+
+    pars <- read_pars(bpar_file)
+    
+    # get variant IDs used in the model
+    dat <- pars$data
+    snp_ids <- rownames(dat)
+
+    # get RFIDs and trait values used to train the model
+    trait <- pars$meta$trait_name
+    trait_var <- pars$meta$trait_source_variable
+    trait_dat <- pars$meta$trait_file
+    trait_dat <- read.csv(trait_dat)
+    trait_dat <- trait_dat[,c('rfid',trait)]
+    trait_dat <- trait_dat[complete.cases(trait_dat),]
+
+    # write variants and pheno data to files
+    outdir <- dirname(bpar_file)    
+    snp_file <- file.path(outdir, paste0(trait_var, '_train_snps'))
+    trait_file <- file.path(outdir, paste0(trait_var, '_train_pheno.csv'))
+    
+    writeLines(snp_ids, snp_file)
+    write.table(trait_dat, trait_file, sep=',', row.names=F, col.names=F, quote=F, na='')
+
+}
