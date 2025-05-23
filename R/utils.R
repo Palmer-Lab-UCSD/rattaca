@@ -442,7 +442,7 @@ get_snps_from_bpar <- function(bpar_file, outdir=NULL) {
 #'
 #' @return A vector of all SNP variants found in both datasets.
 #
-get_common_snpset <- function(train_genotypes, test_genotypes) {
+get_common_snpset <- function(train_genotypes, test_genotypes, out_prefix=NULL) {
     
     if (length(train_genotypes) == 1 && is.character(train_genotypes) && file.exists(paste0(train_genotypes, '.bim'))) {
         # read in snp if provided from a plink bim file
@@ -493,6 +493,12 @@ get_common_snpset <- function(train_genotypes, test_genotypes) {
     # save all snps common to train/test sets from which to sample a common set of snps
     all_snps <- intersect(all_test_snps, all_train_snps)
     
+    # save a plink-formatted variant list
+    if (!is.null(out_prefix)) {
+        train <- basename(train_genotypes)
+        test <- basename(test_genotypes)
+        writeLines(all_snps, paste0(out_prefix, '_common_snps'))
+    }
     return(all_snps)
 }
 
