@@ -1033,6 +1033,7 @@ best_kfold_mod <- function(crossval_list)
 #
 save_cv_results <- function(cv_results, output_dir) {
     
+    trait <- cv_results$trait
     test_results <- cv_results$test
     num_folds <- length(test_results)
     
@@ -1061,11 +1062,11 @@ save_cv_results <- function(cv_results, output_dir) {
         pred = pred)
 
     summary_df <- data.frame(
-        trait = unique(cv_df$trait),
-        fold = unique(cv_df$fold),
-        r_sq = unique(cv_df$r_sq),
-        r = unique(cv_df$r),
-        rho = unique(cv_df$rho))
+        trait = trait,
+        fold = unique(fold),
+        r_sq = unique(r_sq),
+        r = unique(r),
+        rho = unique(rho))
 
     outfile <- paste0(cv_results$trait,'_',num_folds,'fold_cv.csv')
     outfile <- file.path(out_dir, outfile)
