@@ -4,7 +4,16 @@
 \alias{write_pars}
 \title{Write inferred parameters to file}
 \usage{
-write_pars(trait, trait_file, genotype_prefix, pars, filename)
+write_pars(
+  trait,
+  trait_file,
+  genotype_prefix,
+  pars,
+  filename,
+  genotype_source = NULL,
+  trait_source = NULL,
+  trait_variable = NULL
+)
 }
 \arguments{
 \item{trait}{(character) string specifying trait fit}
@@ -17,6 +26,16 @@ genotype files used for fitting}
 \item{pars}{(list) output from rattaca::fit}
 
 \item{filename}{(character) path of file to write}
+
+\item{genotype_source}{(character) path to the original file from which 
+training-set genotypes (in genotype_prefix file) are derived}
+
+\item{trait_source}{(character) Path to the original file from which 
+training-set trait values (in trait_file) are derived}
+
+\item{trait_variable}{(character) If the trait name (input for param 'trait') 
+used for predictions is different from the name used in the original dataset, 
+the column header for the source training phenotype data}
 }
 \description{
 Write inferred parameters to file

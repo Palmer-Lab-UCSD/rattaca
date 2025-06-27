@@ -5,18 +5,24 @@
 \title{Identify the set of SNP variants common to both the training
 and test datasets}
 \usage{
-get_common_snpset(train_genotypes, test_genotypes)
+get_common_snpset(train_genotypes, test_genotypes, out_prefix = NULL)
 }
 \arguments{
-\item{train_genotypes}{(string, list, or matrix)
-Alternatively, the file path/prefix for the training Plink dataset,
-a training genotype data object as produced by make_plink_dataset(), 
+\item{train_genotypes}{(string, character, list, or matrix)
+Alternatively, the file path/prefix for the training Plink dataset, the 
+file path to a bpar file with variant IDs, a vector of training variant 
+IDs, a training genotype data object as produced by make_plink_dataset(), 
 or a named training genotype matrix with RFID rows and variant columns}
 
-\item{test_genotypes}{(string, list, or matrix)
-Alternatively, the file path/prefix for the test Plink dataset,
+\item{test_genotypes}{(string, character, list, or matrix)
+Alternatively, the file path/prefix for the test Plink dataset, the 
+file path to a bpar file with variant IDs, a vector of test variant IDs,
 a test genotype data object as produced by make_plink_dataset(), 
 or a named test genotype matrix with RFID rows and variant columns}
+
+\item{out_prefix}{(character)
+(Default NULL) Directory path + file stem. The path in which to save the 
+set of common SNPs to file}
 }
 \value{
 A vector of all SNP variants found in both datasets.

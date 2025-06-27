@@ -2,7 +2,7 @@
 % Please edit documentation in R/utils.R
 \name{sample_plink_snps}
 \alias{sample_plink_snps}
-\title{Store model parameters from a bpar file.}
+\title{Sample snps from a plink bim file.}
 \usage{
 sample_plink_snps(n_snps, in_prefix, outdir)
 }
