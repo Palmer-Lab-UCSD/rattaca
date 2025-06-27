@@ -1069,12 +1069,12 @@ save_cv_results <- function(cv_results, output_dir) {
         rho = unique(rho))
 
     outfile <- paste0(cv_results$trait,'_',num_folds,'fold_cv.csv')
-    outfile <- file.path(out_dir, outfile)
+    outfile <- file.path(output_dir, outfile)
     write.csv(cv_df, outfile, row.names=F, quote=F, na='')
     cat('Cross-validation dataset written to', outfile, '\n')
 
     outfile <- paste0(cv_results$trait,'_',num_folds,'fold_cv_summary.csv')
-    outfile <- file.path(out_dir, outfile)
+    outfile <- file.path(output_dir, outfile)
     write.csv(summary_df, outfile, row.names=F, quote=F, na='')
     cat('Cross-validation summary written to', outfile, '\n\n')
 }
