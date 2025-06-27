@@ -325,7 +325,7 @@ make_plink_dataset <- function(input_genotypes,
     args <- c(args, '--out', plink_file_name)
 
     # print the plink call to the user
-    cat('Plink call:', plink2, paste(args, collapse=' '), '\n')
+    cat('Plink call:', plink2, paste(args, collapse=' '), '\n\n')
 
     # run plink
     system2(plink2, args)
@@ -344,7 +344,7 @@ make_plink_dataset <- function(input_genotypes,
         args <- c(args, '--extract', snps_to_keep, '--out', ld_plink_file_name)
 
         # print the plink call to the user
-        cat('Plink call:', plink2, paste(args, collapse=' '), '\n')
+        cat('Plink call:', plink2, paste(args, collapse=' '), '\n\n')
 
         # run plink
         system2(plink2, args)
@@ -1034,7 +1034,7 @@ best_kfold_mod <- function(crossval_list)
 save_cv_results <- function(cv_results, output_dir) {
     
     test_results <- cv_results$test
-    n_folds <- length(test_results)
+    num_folds <- length(test_results)
     
     obs <- c()
     pred <- c()
@@ -1053,26 +1053,29 @@ save_cv_results <- function(cv_results, output_dir) {
         rho <- c(rho, rep(out$spearman_corr, length(out$obs)))
     }
 
-    df1 <- data.frame(
+    cv_df <- data.frame(
         trait = rep(trait, length(obs)),
+        rfid = names(obs),
         fold = fold,
         obs = obs,
-        pred = pred,
-        r_sq = r_sq,
-        r = r,
-        rho = rho)
+        pred = pred)
 
-    df2 <- data.frame(
-        trait = unique(df1$trait),
-        fold = unique(df1$fold),
-        r_sq = unique(df1$r_sq),
-        r = unique(df1$r),
-        rho = unique(df1$rho))
+    summary_df <- data.frame(
+        trait = unique(cv_df$trait),
+        fold = unique(cv_df$fold),
+        r_sq = unique(cv_df$r_sq),
+        r = unique(cv_df$r),
+        rho = unique(cv_df$rho))
 
-    write.csv(df1, file.path(output_dir, paste0(trait, '_', n_folds, 'fold_cv_results.csv')),
-        row.names=F, quote=F, na='')
-    write.csv(df2, file.path(output_dir, paste0(trait, '_', n_folds, 'fold_cv_summary.csv')),
-        row.names=F, quote=F, na='')
+    outfile <- paste0(cv_results$trait,'_',num_folds,'fold_cv.csv')
+    outfile <- file.path(out_dir, outfile)
+    write.csv(cv_df, outfile, row.names=F, quote=F, na='')
+    cat('Cross-validation dataset written to', outfile, '\n')
+
+    outfile <- paste0(cv_results$trait,'_',num_folds,'fold_cv_summary.csv')
+    outfile <- file.path(out_dir, outfile)
+    write.csv(summary_df, outfile, row.names=F, quote=F, na='')
+    cat('Cross-validation summary written to', outfile, '\n\n')
 }
 
 #' Plot the results of a k-fold cross validation to files

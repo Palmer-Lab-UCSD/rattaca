@@ -211,49 +211,51 @@ kfold_cv <- function(data, num_folds, out_dir)
     model_results <- list(trait = data$trait, splits = splits, train = train_fits, test = test_fits)
 
     # write cross-validation results to files
-    test_results <- model_results$test
+    save_cv_results(model_results, out_dir)
+
+    # test_results <- model_results$test
     
-    obs <- c()
-    pred <- c()
-    r_sq <- c()
-    r <- c()
-    rho <- c()
-    fold <- c()
+    # obs <- c()
+    # pred <- c()
+    # r_sq <- c()
+    # r <- c()
+    # rho <- c()
+    # fold <- c()
 
-    for (k in 1:length(test_results)) {
-        out <- model_results$test[[k]]
-        obs <- c(obs, out$obs)
-        pred <- c(pred, out$pred)
-        fold <- c(fold, rep(k, length(out$obs)))
-        r_sq <- c(r_sq, rep(out$r_sq, length(out$obs)))
-        r <- c(r, rep(out$pearson_corr, length(out$obs)))
-        rho <- c(rho, rep(out$spearman_corr, length(out$obs)))
-    }
+    # for (k in 1:length(test_results)) {
+    #     out <- model_results$test[[k]]
+    #     obs <- c(obs, out$obs)
+    #     pred <- c(pred, out$pred)
+    #     fold <- c(fold, rep(k, length(out$obs)))
+    #     r_sq <- c(r_sq, rep(out$r_sq, length(out$obs)))
+    #     r <- c(r, rep(out$pearson_corr, length(out$obs)))
+    #     rho <- c(rho, rep(out$spearman_corr, length(out$obs)))
+    # }
 
-    cv_df <- data.frame(
-        rfid = names(obs),
-        trait = rep(trait, length(obs)),
-        fold = fold,
-        obs = obs,
-        pred = pred,
-        r_sq = r_sq,
-        r = r,
-        rho = rho)
-    outfile <- paste0(data$trait,'_',num_folds,'fold_cv.csv')
-    outfile <- file.path(out_dir, outfile)
-    write.csv(cv_df, outfile, row.names=F, quote=F, na='')
-    cat('Cross-validation dataset written to', outfile, '\n')
+    # cv_df <- data.frame(
+    #     rfid = names(obs),
+    #     trait = rep(trait, length(obs)),
+    #     fold = fold,
+    #     obs = obs,
+    #     pred = pred,
+    #     r_sq = r_sq,
+    #     r = r,
+    #     rho = rho)
+    # outfile <- paste0(data$trait,'_',num_folds,'fold_cv.csv')
+    # outfile <- file.path(out_dir, outfile)
+    # write.csv(cv_df, outfile, row.names=F, quote=F, na='')
+    # cat('Cross-validation dataset written to', outfile, '\n')
 
-    summary_df <- data.frame(
-        trait = trait,
-        fold = unique(fold),
-        r_sq = unique(r_sq),
-        r = unique(r),
-        rho = unique(rho))
-    outfile <- paste0(data$trait,'_',num_folds,'fold_cv_summary.csv')
-    outfile <- file.path(out_dir, outfile)
-    write.csv(summary_df, outfile, row.names=F, quote=F, na='')
-    cat('Cross-validation summary written to', outfile, '\n\n')
+    # summary_df <- data.frame(
+    #     trait = trait,
+    #     fold = unique(fold),
+    #     r_sq = unique(r_sq),
+    #     r = unique(r),
+    #     rho = unique(rho))
+    # outfile <- paste0(data$trait,'_',num_folds,'fold_cv_summary.csv')
+    # outfile <- file.path(out_dir, outfile)
+    # write.csv(summary_df, outfile, row.names=F, quote=F, na='')
+    # cat('Cross-validation summary written to', outfile, '\n\n')
 
     return(model_results)
 } 
