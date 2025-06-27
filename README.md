@@ -65,7 +65,7 @@ Alternatively, to save within a specific directory (such as within a conda envir
 library), use the `-l` option to set the desired parent directory for the package binary:
 
 ```bash
-R CMD INSTALL -l path/to/location rattaca
+R CMD INSTALL -l desired/path/to/location/ rattaca_<version_number>.tar.gz
 ```
 
 To install from `R`, restart `R` and in the command line execute:
