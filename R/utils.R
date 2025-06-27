@@ -1969,3 +1969,90 @@ save_training_data <- function(bpar_file) {
     write.table(trait_dat, trait_file, sep=',', row.names=F, col.names=F, quote=F, na='')
 
 }
+
+
+#' Create a RATTACA trait dictionary from a setup file
+#' 
+#' @description
+#' Reads a trait dict setup file to extract variable names, filepaths,
+#' and heritabilities from various input files, then formats and saves them to
+#' a RATTACA trait dictionary
+#'
+#' @export
+#'
+#' @param setup (character or dataframe)
+#'      R dataframe or path to a csv dict setup file. The setup df should have
+#'      one row per trait, and the following columns: trait, project_name, 
+#'      data_file, data_var, data_dict, dict_var, h2_file, h2_var
+#' @param outfile (character)
+#'      Path to the desired output file, a trait dictionary in csv format
+#' @param return_dict (boolean)
+#'      (Default FALSE) Whether to return the dictionary to the R environment
+#' @return None. Saves a text file of variant IDs and a csv file of training rfids 
+#' and trait data into the same directory as the parameter file.
+#
+
+create_trait_dict <- function(
+    setup, # csv path or R dataframe
+    outfile, # output path + file prefix
+    return_dict = FALSE)
+{
+
+    if (class(setup) == 'data.frame') {
+        setup <- setup
+    } else {
+        setup <- read.csv(setup)
+    }
+
+    # create a trait dictionary df
+    dict <- data.frame(
+        trait = setup$trait,
+        heritability = NA,
+        project_name = setup$project_name,
+        variable_used = setup$data_var,
+        description = NA,
+        covariates = NA,
+        source_file = setup$data_file
+    )
+
+    for (i in 1:nrow(dict)) {
+        
+        h2_file <- setup$h2_file[i]
+        h2_var <- setup$h2_var[i]
+        data_dict <- setup$data_dict[i]
+        dict_var <- setup$dict_var[i]
+
+        # get heritability estimates
+        if (!is.na(h2_file)) {
+            h2_df <- read.table(h2_file, sep='\t', header=T)
+            h2 <- h2_df[h2_df[,1]==h2_var,5]
+            dict$heritability[i] <- h2
+        }
+
+        # get trait descriptions & GWAS covariates
+        if (!is.na(data_dict)) {
+            dd <- read.csv(data_dict)
+
+            descr <- dd$description[which(dd$measure==dict_var)]
+            if (!is.na(descr)) {
+                descr <- gsub(',',';', descr)
+                dict$description[i] <- descr                
+            }
+
+            covars <- dd$covariates[which(dd$measure==dict_var)]
+            if (!is.na(covars)) {
+                covars <- gsub(',','|', covars)    
+                dict$covariates[i] <- covars
+            }
+        }
+    }
+
+    dict <- dict[with(dict, order(project_name, trait)), ]
+
+    write.csv(dict, outfile, row.names=F, quote=F, na='')
+    cat('Trait dictionary saved to', outfile, '\n')
+    
+    if (return_dict) {
+        return(dict)
+    }
+}
