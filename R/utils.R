@@ -473,12 +473,20 @@ get_common_snpset <- function(train_genotypes, test_genotypes, out_prefix=NULL) 
 
     if (length(test_genotypes) == 1 && is.character(test_genotypes) && file.exists(paste0(test_genotypes, '.bim'))) {
         # read in snp if provided from a plink bim file
-        all_test_snps <- genio::read_bim(paste0(test_genotypes, '.bim'))
-        all_test_snps <- all_test_snps$id
+        if (test_genotypes == train_genotypes) {
+            all_test_snps <- all_train_snps
+        } else {
+            all_test_snps <- genio::read_bim(paste0(test_genotypes, '.bim'))
+            all_test_snps <- all_test_snps$id
+        }
     } else if (length(test_genotypes) == 1 && is.character(test_genotypes) && 
               grepl('.bpar$', test_genotypes) && file.exists(test_genotypes)) {
         # read in snps if provided from a bpar file
-        all_test_snps <- get_snps_from_bpar(test_genotypes)
+        if (test_genotypes == train_genotypes) {
+            all_test_snps <- all_train_snps
+        } else {
+            all_test_snps <- get_snps_from_bpar(test_genotypes)
+        }
     } else if (!is.list(test_genotypes) && length(test_genotypes) > 1) {
         # keep snps as-is if provided as a vector of variant IDs
         all_test_snps <- test_genotypes
