@@ -414,7 +414,7 @@ get_snps_from_bpar <- function(bpar_file, outdir=NULL) {
     out <- list(bpar_snps = snp_ids, bpar_snps_file = NULL)
 
     if (!is.null(outdir)) {
-        file_prefix <- basename(pars$meta$plink_genotypes_prefix)
+        file_prefix <- basename(pars$meta$genotypes_file)
         filename <- paste0(file_prefix, '_from_bpar_snps')
         outfile <- file.path(outdir, filename)
         out$bpar_snps_file <- outfile
