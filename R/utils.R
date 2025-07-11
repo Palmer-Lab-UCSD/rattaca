@@ -679,26 +679,39 @@ sample_plink_snps <- function(
 #' @return A list of length n_samples of genotype datasets as produced
 #'          by make_plink_dataset()
 #
-sample_snps_from_plink_files <- function(input_genotypes,   # genotype data in plink format: base filename
-                                         snp_directory,     # directory of 1 or more txt files listing sampled SNPs
-                                         output_dir,        # directory to hold the new datasets
-                                         n_samples = 1,     # number of SNP samples to extract & datasets to produce
-                                         keep_files = TRUE) # T: keep plink files; F: delete plink files
+sample_snps_from_plink_files2 <- function(input_genotypes,   # genotype data in plink format: base filename
+                                        snp_directory,     # directory of 1 or more txt files listing sampled SNPs
+                                        output_dir,        # directory to hold the new datasets
+                                        n_samples = 1,     # number of SNP samples to extract & datasets to produce
+                                        n_snps,            # number of SNPs desired per sample
+                                        keep_files = TRUE) # T: keep plink files; F: delete plink files
 {
     input_filename <- basename(input_genotypes)
-    all_samples <- list.files(snp_directory, full.names=T)
+    all_samples <- list.files(snp_directory, full.names=T, pattern='snpset_[0-9]+k_random_[0-9]+$')
     geno_datasets <- list()
     
     for (i in 1:n_samples) {
         
-        snp_sample <- all_samples[i]
+        # use the snp file corresponding to sample i
+        use_file_pattern <- paste0('_', i, '$')
+        snp_sample <- all_samples[grep(use_file_pattern, basename(all_samples))]
+
+        # ensure the file has the number of snps desired
+        sample_n <- length(readLines(snp_sample))
+
+        if (sample_n != n_snps) {
+            stop(paste('SNP file', snp_sample, 'has', sample_n, 'variants, not', paste0(n_snps),'. Check your SNP files before proceeding.'))
+        }
         
         geno_datasets[[i]] <- make_plink_dataset(
             input_genotypes = input_genotypes,
             output_dir = output_dir,             # directory for the new dataset
             outfile_prefix = paste0(input_filename, '_', i),    # base filename for the new dataset
-            snps_to_keep = snp_sample,    # text file of snps to keep from the input dataset
-            return_data=TRUE)       # T: return the dataset in R; F: just produce the data files
+            snps_to_keep = snp_sample,  # text file of snps to keep from the input dataset
+            maf_cutoff = NULL,          # NULL: do not perform any snp filtering in addition to the random sample
+            missing_cutoff = NULL,      # NULL: do not perform any snp filtering in addition to the random sample
+            hwe_cutoff = NULL,          # NULL: do not perform any snp filtering in addition to the random sample
+            return_data=TRUE)           # T: return the dataset in R; F: just produce the data files
 
         # delete unwanted files
         if (!keep_files) {
@@ -1481,6 +1494,7 @@ summarize_preds <- function(
         trait = traits,
         n_train = NA,
         n_test = NA,
+        n_snps = NA,
         mean_r_sq = NA,
         mean_r = NA,
         mean_rho = NA)
@@ -1502,9 +1516,11 @@ summarize_preds <- function(
         train_fam_file <- list.files(file.path(results_dir, trait, 'train'), pattern = '.fam$', full.names = T)
         test_fam_file <- list.files(file.path(results_dir, trait, 'test'), pattern = '.fam$', full.names = T)
         cv_sum <- read.csv(list.files(file.path(results_dir, trait), pattern = 'cv_summary.csv$', full.names = T))
-        
+        pars <- read_pars(list.files(file.path(results_dir, trait), pattern = '.bpar$', full.names = T))
+
         summary$n_train[i] <- system(paste('cat', train_fam_file, '| wc -l'), intern = T)
         summary$n_test[i] <- system(paste('cat', test_fam_file, '| wc -l'), intern = T)
+        summary$n_snps[i] <- bpar$n_snps
         summary$mean_r_sq[i] <- mean(cv_sum$r_sq)
         summary$mean_r[i] <- mean(cv_sum$r)
         summary$mean_rho[i] <- mean(cv_sum$rho)
