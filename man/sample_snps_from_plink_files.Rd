@@ -11,6 +11,7 @@ sample_snps_from_plink_files(
   snp_directory,
   output_dir,
   n_samples = 1,
+  n_snps,
   keep_files = TRUE
 )
 }
@@ -28,6 +29,9 @@ The output directory in which to save the new Plink dataset(s)}
 \item{n_samples}{(int)
 (default 1) The number of random samples and Plink datasets 
 to produce}
+
+\item{n_snps}{(int)
+The number of snps desired per sample}
 
 \item{keep_files}{(bool)
 (default TRUE) Whether or not to keep Plink genotype files.

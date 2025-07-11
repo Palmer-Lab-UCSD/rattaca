@@ -672,6 +672,9 @@ sample_plink_snps <- function(
 #'      (default 1) The number of random samples and Plink datasets 
 #'      to produce
 #'
+#' @param n_snps (int)
+#'      The number of snps desired per sample
+#' 
 #' @param keep_files (bool)
 #'      (default TRUE) Whether or not to keep Plink genotype files.
 #'      Use FALSE if only SNP files are desired
@@ -679,7 +682,7 @@ sample_plink_snps <- function(
 #' @return A list of length n_samples of genotype datasets as produced
 #'          by make_plink_dataset()
 #
-sample_snps_from_plink_files2 <- function(input_genotypes,   # genotype data in plink format: base filename
+sample_snps_from_plink_files <- function(input_genotypes,   # genotype data in plink format: base filename
                                         snp_directory,     # directory of 1 or more txt files listing sampled SNPs
                                         output_dir,        # directory to hold the new datasets
                                         n_samples = 1,     # number of SNP samples to extract & datasets to produce
