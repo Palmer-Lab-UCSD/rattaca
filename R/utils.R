@@ -1538,7 +1538,7 @@ summarize_preds <- function(
         }
     }
     if (!is.null(pheno_dict)) {
-        col_order <- c('trait','heritability','n_train','n_test','mean_r_sq','mean_r','mean_rho',
+        col_order <- c('trait','heritability','n_train','n_test', 'n_snps','mean_r_sq','mean_r','mean_rho',
                        'description','covariates','variable_used','source_file')
         summary <- summary[,col_order]
     }
