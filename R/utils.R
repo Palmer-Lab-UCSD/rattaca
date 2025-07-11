@@ -1523,7 +1523,7 @@ summarize_preds <- function(
 
         summary$n_train[i] <- system(paste('cat', train_fam_file, '| wc -l'), intern = T)
         summary$n_test[i] <- system(paste('cat', test_fam_file, '| wc -l'), intern = T)
-        summary$n_snps[i] <- pars$n_snps
+        summary$n_snps[i] <- pars$meta$n_snps
         summary$mean_r_sq[i] <- mean(cv_sum$r_sq)
         summary$mean_r[i] <- mean(cv_sum$r)
         summary$mean_rho[i] <- mean(cv_sum$rho)
