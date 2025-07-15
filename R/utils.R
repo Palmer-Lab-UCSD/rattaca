@@ -1468,7 +1468,8 @@ convert_bpar <- function(bpar_file) {
 #'
 #' @param traits (character)
 #'      A vector of trait names(s) (corresponding to directory names with 
-#'      prediction results) to incorporate into the summary
+#'      prediction results) to incorporate into the summary, or the path to 
+#'      the trait list file that names traits to include.
 #' 
 #' @param results_dir (string)
 #'      The directory path to the results folder housing output directories 
@@ -1493,6 +1494,11 @@ summarize_preds <- function(
     basename = 'all_traits',
     pheno_dict = NULL) # path to csv with trait, variable_used, description columns
 {
+
+    if (length(traits)==1 && file.exists(traits)) {
+        traits <- readLines(traits)
+    }
+
     summary <- data.frame(
         trait = traits,
         n_train = NA,
