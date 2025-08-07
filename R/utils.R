@@ -1352,9 +1352,9 @@ trait_groups <- function(preds, col=NULL, n_groups=2) {
 #'
 #' @export
 #'
-#' @param phtypes_file (character)
-#'      The path to a csv file with phenotype data. The file must have an 'rfid'
-#'      column.
+#' @param pheno_dat (character or dataframe)
+#'      Either an R dataframe or the path to a csv file with phenotype data. 
+#'      Must have an 'rfid' column.
 #' 
 #' @param trait (character)
 #'      The name of the dataframe column (the trait name) on which to conduct
@@ -1376,14 +1376,16 @@ trait_groups <- function(preds, col=NULL, n_groups=2) {
 #'      training and test data.
 #
 train_test_split <- function(
-    phtypes_file, 
+    pheno_dat, 
     trait,
     train_split=0.7,
     train_dir,
     test_dir) 
 {
     test_split = 1 - train_split
-    pheno_dat <- read.csv(phtypes_file)
+    if (file.exists(pheno_dat)) {
+        pheno_dat <- read.csv(pheno_dat)
+    } 
     trait_dat <- pheno_dat[,c('rfid',trait)]
     trait_dat <- trait_dat[complete.cases(trait_dat),]
     rownames(trait_dat) <- trait_dat$rfid
