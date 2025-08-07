@@ -1383,9 +1383,11 @@ train_test_split <- function(
     test_dir) 
 {
     test_split = 1 - train_split
-    if (class(pheno_dat)=='character' & file.exists(pheno_dat)) {
+    if (is.character(pheno_dat) && length(pheno_dat) == 1 && file.exists(pheno_dat)) {
         pheno_dat <- read.csv(pheno_dat)
-    } 
+    } else if (!is.data.frame(pheno_dat)) {
+        stop("pheno_dat must be either a dataframe or a valid file path to a CSV file")
+    }
     trait_dat <- pheno_dat[,c('rfid',trait)]
     trait_dat <- trait_dat[complete.cases(trait_dat),]
     rownames(trait_dat) <- trait_dat$rfid
