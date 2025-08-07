@@ -14,7 +14,8 @@ summarize_preds(
 \arguments{
 \item{traits}{(character)
 A vector of trait names(s) (corresponding to directory names with 
-prediction results) to incorporate into the summary}
+prediction results) to incorporate into the summary, or the path to 
+the trait list file that names traits to include.}
 
 \item{results_dir}{(string)
 The directory path to the results folder housing output directories 

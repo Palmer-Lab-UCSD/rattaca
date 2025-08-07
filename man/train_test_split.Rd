@@ -5,12 +5,12 @@
 \title{Split a phenotypic dataset into train and test samples, and produce files
 of RFIDs for either sample.}
 \usage{
-train_test_split(phtypes_file, trait, train_split = 0.7, train_dir, test_dir)
+train_test_split(pheno_dat, trait, train_split = 0.7, train_dir, test_dir)
 }
 \arguments{
-\item{phtypes_file}{(character)
-The path to a csv file with phenotype data. The file must have an 'rfid'
-column.}
+\item{pheno_dat}{(character or dataframe)
+Either an R dataframe or the path to a csv file with phenotype data. 
+Must have an 'rfid' column.}
 
 \item{trait}{(character)
 The name of the dataframe column (the trait name) on which to conduct
