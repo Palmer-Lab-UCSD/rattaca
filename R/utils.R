@@ -1397,7 +1397,7 @@ train_test_split <- function(
     trait_dat <- pheno_dat[,c('rfid',trait)]
     trait_dat <- trait_dat[complete.cases(trait_dat),]
     rownames(trait_dat) <- trait_dat$rfid
-    trait_dat <- prep_trait_data(phtypes_file, 'rfid', trait, 'data.frame')
+    trait_dat <- prep_trait_data(pheno_dat, 'rfid', trait, 'data.frame')
 
     # set up training data
     train_rfids <- sample(rownames(trait_dat), train_split * nrow(trait_dat))
