@@ -1383,7 +1383,7 @@ train_test_split <- function(
     test_dir) 
 {
     test_split = 1 - train_split
-    if (file.exists(pheno_dat)) {
+    if (class(pheno_dat)=='character' & file.exists(pheno_dat)) {
         pheno_dat <- read.csv(pheno_dat)
     } 
     trait_dat <- pheno_dat[,c('rfid',trait)]
