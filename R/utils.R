@@ -61,8 +61,8 @@ load_and_prepare_plink_data <- function(prefix_name)
 #'
 #' @export
 #'
-#' @param filename (character)
-#'      path to trait csv table
+#' @param pheno_dat (character or dataframe)
+#'      path to trait csv table, or an R dataframe
 #' @param id_column (character)
 #'      name of column with animal IDs whose values will be the data index names
 #' @param trait_name (character)
@@ -76,23 +76,29 @@ load_and_prepare_plink_data <- function(prefix_name)
 #'      or a numeric vector named with sample IDs.
 #
 prep_trait_data <- function(
-    filename,
+    pheno_dat,
     id_column,
     trait_name,
     format = c('numeric','data.frame'))
 {
-    data <- utils::read.csv(filename)[,c(id_column, trait_name)]
-    data <- data[!is.na(data[,trait_name]), ]
-    rownames(data) <- data[, id_column]
-    data[,id_column] <- NULL
-
-    if (format == 'numeric') {
-        ids <- rownames(data)
-        data <- as.numeric(data[,trait_name])
-        names(data) <- ids
+    if (is.character(pheno_dat) && length(pheno_dat) == 1 && file.exists(pheno_dat)) {
+        pheno_dat <- read.csv(pheno_dat)
+    } else if (!is.data.frame(pheno_dat)) {
+        stop("pheno_dat must be either a dataframe or a valid file path to a CSV file")
     }
 
-    return(data)
+    pheno_dat <- pheno_dat[,c(id_column, trait_name)]
+    pheno_dat <- pheno_dat[!is.na(pheno_dat[,trait_name]), ]
+    rownames(pheno_dat) <- pheno_dat[, id_column]
+    pheno_dat[,id_column] <- NULL
+
+    if (format == 'numeric') {
+        ids <- rownames(pheno_dat)
+        pheno_dat <- as.numeric(pheno_dat[,trait_name])
+        names(pheno_dat) <- ids
+    }
+
+    return(pheno_dat)
 }
 
 
