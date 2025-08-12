@@ -2050,6 +2050,7 @@ create_trait_dict <- function(
     # create a trait dictionary df
     dict <- data.frame(
         trait = setup$trait,
+        n = NA,
         heritability = NA,
         project_name = setup$project_name,
         variable_used = setup$data_var,
@@ -2068,7 +2069,9 @@ create_trait_dict <- function(
         # get heritability estimates
         if (!is.na(h2_file)) {
             h2_df <- read.table(h2_file, sep='\t', header=T)
+            n <- as.integer(h2_df[h2_df[,1]==h2_var,10])
             h2 <- h2_df[h2_df[,1]==h2_var,5]
+            dict$n[i] <- n
             dict$heritability[i] <- h2
         }
 
