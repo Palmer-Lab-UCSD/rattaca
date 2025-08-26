@@ -2060,8 +2060,6 @@ create_trait_dict <- function(
     )
 
     for (i in 1:nrow(dict)) {
-
-        print(dict$trait[i])
         
         h2_file <- setup$h2_file[i]
         h2_var <- setup$h2_var[i]
