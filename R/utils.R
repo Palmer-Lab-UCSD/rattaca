@@ -2073,8 +2073,6 @@ create_trait_dict <- function(
             h2_df <- read.table(h2_file, sep='\t', header=T)
             n <- as.integer(h2_df[h2_df[,1]==h2_var,10])
             h2 <- h2_df[h2_df[,1]==h2_var,5]
-            print(n)
-            print(h2)
             if (length(n) > 0) dict$n[i] <- n
             if (length(h2) > 0) dict$heritability[i] <- h2
         }
