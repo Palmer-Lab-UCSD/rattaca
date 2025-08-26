@@ -2060,6 +2060,8 @@ create_trait_dict <- function(
     )
 
     for (i in 1:nrow(dict)) {
+
+        print(dict$trait[i])
         
         h2_file <- setup$h2_file[i]
         h2_var <- setup$h2_var[i]
@@ -2067,16 +2069,18 @@ create_trait_dict <- function(
         dict_var <- setup$dict_var[i]
 
         # get heritability estimates
-        if (!is.na(h2_file)) {
+        if (!is.na(h2_file) & file.exists(h2_file)) {
             h2_df <- read.table(h2_file, sep='\t', header=T)
             n <- as.integer(h2_df[h2_df[,1]==h2_var,10])
             h2 <- h2_df[h2_df[,1]==h2_var,5]
-            dict$n[i] <- n
-            dict$heritability[i] <- h2
+            print(n)
+            print(h2)
+            if (length(n) > 0) dict$n[i] <- n
+            if (length(h2) > 0) dict$heritability[i] <- h2
         }
 
         # get trait descriptions & GWAS covariates
-        if (!is.na(data_dict)) {
+        if (!is.na(data_dict) & file.exists(data_dict)) {
             dd <- read.csv(data_dict)
 
             descr <- dd$description[which(dd$measure==dict_var)]
