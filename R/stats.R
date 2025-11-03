@@ -396,6 +396,9 @@ test_power <- function(
     outdir = NULL)
 {
     preds <- sort(predictions)
+    n_analyses = 0
+
+    # empty vectors to store results
     sample_pct <- c()
     sample_n <- c()
     sample_type <- c()
@@ -420,37 +423,62 @@ test_power <- function(
         names(group_size)[length(group_size)] <- 'assigned'
     }
 
-    for (group_sample in group_size) {
+    # process each desired group size
+    for (i in 1:length(group_size)) {
+
+        group_sample <- group_size[i]
+        group_type <- names(group_size)[i]
+        
+        # if groups are input as a fraction, calculate sample sizes
+        if (group_sample < 1) {
+            pct <- group_sample
+            group_n <- ceiling(length(preds)*group_sample)
+        } else { 
+            pct <- round(group_sample/length(preds),3)
+            group_n <- group_sample
+        }
+
+        # produce high & low samples: the n most extreme high or low IDs
+        low_rfids <- names(preds)[1:group_n]
+        high_rfids <- names(preds)[(length(preds)-group_n):length(preds)]
+
+        # if testing an assigned group, use the actual assigned IDs
+        if (group_type == 'assigned') {
+            low_rfids <- low_ids
+            high_rfids <- high_ids
+        }
+
+        # subset genotypes to the assigned sample
+        geno_low <- genotypes[low_rfids,]
+        geno_high <- genotypes[high_rfids,]
+
+        # power analyses on each combination of group size x alpha
+        for (j in 1:length(alpha)) {
+
+            sig <- alpha[j]
+            n_analyses = n_analyses + 1
+            print(n_analyses)
+            # if (n_analyses %% 10 == 0) {
+                cat(paste0('\n[', format(Sys.time(), '%Y-%m-%d %H:%M:%S'), ']'),
+                    'Power analysis', paste0(n_analyses,':'), 
+                    'group size =', paste0(group_sample, ','), 
+                    'sigma =', sig)
+            # }
+            
+            pwr <- power_analysis(
+                geno_low = geno_low, 
+                geno_high = geno_high, 
+                sim = sim, 
+                sig = sig, 
+                m_power_reps = tests) 
+            power <- c(power, pwr)
+        }
+
+        sample_pct <- c(sample_pct, rep(pct, length(alpha)))
+        sample_n <- c(sample_n, rep(group_n, length(alpha)))
+        sig_cutoff <- rep(alpha, length(group_size))
     
-    # if groups are input as a fraction, calculate sample sizes
-    if (group_sample < 1) {
-        pct <- group_sample
-        group_n <- ceiling(length(preds)*group_sample)
-    } else { 
-        pct <- round(group_sample/length(preds),3)
-        group_n <- group_sample
-    }
-
-    # produce high & low samples    
-    low_rfids <- names(preds)[1:group_n]
-    high_rfids <- names(preds)[(length(preds)-group_n):length(preds)]
-    geno_low <- genotypes[low_rfids,]
-    geno_high <- genotypes[high_rfids,]
-
-    for (sig in alpha) {
-        # power analysis on the combination of group size, alpha, 
-        pwr <- power_analysis(geno_low = geno_low, 
-                              geno_high = geno_high, 
-                              sim = sim, 
-                              sig=sig, 
-                              m_power_reps=tests) 
-        power <- c(power, pwr)
-    }
-
-    sample_pct <- c(sample_pct, rep(pct, length(alpha)))
-    sample_n <- c(sample_n, rep(group_n, length(alpha)))
-    sig_cutoff <- rep(alpha, length(group_size))
-}
+    } # end of group_size for loop
 
     if (is.null(names(group_size))) {
         out_df <- data.frame(
@@ -588,18 +616,29 @@ test_power_multi <- function(
         alpha = mean_power$alpha,
         reps = reps,
         tests_per_rep = tests_per_rep,
-        power_mean = mean_power$power,
-        power_se = se_power)
+        power_mean = round(mean_power$power,3),
+        power_se = round(se_power,3))
+
+    if ('sample_type' %in% colnames(results)) {
+        n_groups <- nrow(summary)
+        sample_types <- results$sample_type[1:n_groups]
+        sumcols <- colnames(summary)
+        summary$sample_type <- sample_types
+        summary <- summary[,c('sample_type',sumcols)]
+    }
 
     if (!is.null(outdir)) {
         
-        write.csv(results, file.path(outdir, paste0(trait, '_test_power_multi_n',
-            tests_per_rep, '_tests_n', reps, '_reps.csv')),
-              row.names=F, quote=F, na='')
-        write.csv(summary, file.path(outdir, paste0(trait, '_test_power_multi_n',
-            tests_per_rep, '_tests_n', reps, '_reps_summary.csv')),
-              row.names=F, quote=F, na='')
+        results_file <- file.path(outdir, paste0(trait, '_test_power_multi_n',
+            tests_per_rep, '_tests_n', reps, '_reps.csv'))
+        summary_file <- file.path(outdir, paste0(trait, '_test_power_multi_n',
+            tests_per_rep, '_tests_n', reps, '_reps_summary.csv'))
+        write.csv(results, results_file, row.names=F, quote=F, na='')
+        write.csv(summary, summary_file, row.names=F, quote=F, na='')
     }
+
+    cat('Replicate results written to', results_file, '\n')
+    cat('Summarized results written to', summary_file, '\n')
 
     return(list(results = results, summary = summary))
 }
