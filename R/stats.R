@@ -396,7 +396,10 @@ test_power <- function(
     outdir = NULL)
 {
     preds <- sort(predictions)
-    n_analyses = 0
+    total_analyses <- length(group_size) * length(alpha) * tests
+    milestone_analysis <- ceiling(total_analysis/10)
+    progress <- 0 
+    n_analyses <- 0 
 
     # empty vectors to store results
     sample_pct <- c()
@@ -457,13 +460,15 @@ test_power <- function(
 
             sig <- alpha[j]
             n_analyses = n_analyses + 1
-            print(n_analyses)
-            # if (n_analyses %% 10 == 0) {
-                cat(paste0('\n[', format(Sys.time(), '%Y-%m-%d %H:%M:%S'), ']'),
+            progress <- progress + 10
+            
+            if (n_analyses %% milestone_analysis == 0) {
+                cat(paste0('\t[', format(Sys.time(), '%Y-%m-%d %H:%M:%S'), ']'),
                     'Power analysis', paste0(n_analyses,':'), 
                     'group size =', paste0(group_sample, ','), 
-                    'sigma =', sig)
-            # }
+                    'sigma =', sig, 
+                    paste0('(',progress,'% complete)'), '\n')
+            }
             
             pwr <- power_analysis(
                 geno_low = geno_low, 
