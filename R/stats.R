@@ -397,7 +397,7 @@ test_power <- function(
 {
     preds <- sort(predictions)
     total_analyses <- length(group_size) * length(alpha) * tests
-    milestone_analysis <- ceiling(total_analysis/10)
+    milestone_analysis <- ceiling(total_analyses/10)
     progress <- 0 
     n_analyses <- 0 
 
@@ -461,7 +461,7 @@ test_power <- function(
             sig <- alpha[j]
             n_analyses = n_analyses + 1
             progress <- progress + 10
-            
+
             if (n_analyses %% milestone_analysis == 0) {
                 cat(paste0('\t[', format(Sys.time(), '%Y-%m-%d %H:%M:%S'), ']'),
                     'Power analysis', paste0(n_analyses,':'), 
