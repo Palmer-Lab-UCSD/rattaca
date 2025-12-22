@@ -2069,6 +2069,12 @@ create_trait_dict <- function(
         # get heritability estimates
         if (!is.na(h2_file) & file.exists(h2_file)) {
             h2_df <- read.table(h2_file, sep='\t', header=T)
+
+            # ensure the h2 variable is present
+            if (!h2_var %in% h2_df[,1]) {
+                cat('Variable name', h2_var, 'not found in heritability file', h2_file, '\n')
+            }
+
             n <- as.integer(h2_df[h2_df[,1]==h2_var,10])
             h2 <- h2_df[h2_df[,1]==h2_var,5]
             if (length(n) > 0) dict$n[i] <- n
@@ -2079,12 +2085,17 @@ create_trait_dict <- function(
         if (!is.na(data_dict) & file.exists(data_dict)) {
             dd <- read.csv(data_dict)
 
+            # ensure the trait dict variable is present
+            if (!dict_var %in% dd$measure) {
+                cat('Variable name', dict_var, 'not found in dictionary file', data_dict, '\n')
+            }
+
             descr <- dd$description[which(dd$measure==dict_var)]
             if (!is.na(descr)) {
                 descr <- gsub(',',';', descr)
                 dict$description[i] <- descr                
             }
-
+            
             covars <- dd$covariates[which(dd$measure==dict_var)]
             if (!is.na(covars)) {
                 covars <- gsub(',','|', covars)    
