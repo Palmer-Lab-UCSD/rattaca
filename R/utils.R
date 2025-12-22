@@ -574,6 +574,10 @@ sample_snps <- function(input_snps,
         use_snps <- sample(input_snps, keep)
         use_snps <- strsplit(use_snps,':')
         chr <- sapply(use_snps, function(x) x[1])
+        if (any(grepl('^chr', chr))) {
+            chr <- gsub('^chr','', chr)
+            append_chr_str <- T
+        }
         pos <- sapply(use_snps, function(x) x[2])
         snp_df <- data.frame(cbind(chr,pos))
         snp_df$pos <- as.numeric(snp_df$pos)
@@ -586,6 +590,7 @@ sample_snps <- function(input_snps,
         snp_char <- snp_char[order(snp_char$chr, snp_char$pos),]
         snp_df <- rbind(snp_num, snp_char)
         use_snps <- paste0(snp_df$chr, ':', snp_df$pos)
+        if (append_chr_str) use_snps <- paste0('chr', use_snps)
 
         snp_list[[i]] <- use_snps
     
