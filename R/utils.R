@@ -582,7 +582,7 @@ sample_snps <- function(input_snps,
         pos <- sapply(use_snps, function(x) x[2])
         snp_df <- data.frame(cbind(chr,pos))
         snp_df$pos <- as.numeric(snp_df$pos)
-        extra_chrs <- c('M', 'MT' 'X', 'Y')
+        extra_chrs <- c('M', 'MT', 'X', 'Y')
         snp_num <- snp_df[!snp_df$chr %in% extra_chrs,]
         snp_char <- snp_df[snp_df$chr %in% extra_chrs,]
         snp_num$chr <- as.numeric(snp_num$chr)
