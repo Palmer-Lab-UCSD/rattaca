@@ -574,6 +574,7 @@ sample_snps <- function(input_snps,
         use_snps <- sample(input_snps, keep)
         use_snps <- strsplit(use_snps,':')
         chr <- sapply(use_snps, function(x) x[1])
+        append_chr_str <- F
         if (any(grepl('^chr', chr))) {
             chr <- gsub('^chr','', chr)
             append_chr_str <- T
@@ -581,7 +582,7 @@ sample_snps <- function(input_snps,
         pos <- sapply(use_snps, function(x) x[2])
         snp_df <- data.frame(cbind(chr,pos))
         snp_df$pos <- as.numeric(snp_df$pos)
-        extra_chrs <- c('MT', 'X', 'Y')
+        extra_chrs <- c('M', 'MT' 'X', 'Y')
         snp_num <- snp_df[!snp_df$chr %in% extra_chrs,]
         snp_char <- snp_df[snp_df$chr %in% extra_chrs,]
         snp_num$chr <- as.numeric(snp_num$chr)
@@ -1564,7 +1565,9 @@ summarize_preds <- function(
         summary <- summary[,col_order]
     }
     datestamp <- format(Sys.time(), '%Y%m%d')
-    write.csv(summary, file.path(results_dir, paste0(basename, '_summary_', datestamp, '.csv')), row.names=F, quote=F, na='')
+    outfile <- file.path(results_dir, paste0(basename, '_summary_', datestamp, '.csv'))
+    write.csv(summary, , row.names=F, quote=F, na='')
+    cat('Predictions summary saved to', outfile, '\n')
     return(summary)
 }
 
