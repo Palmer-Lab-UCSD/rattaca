@@ -1305,10 +1305,12 @@ merge_preds <- function(directory, # directory containing trait-named directorie
     if (!is.null(output_dir)){
         if (is.null(composite_traits)) {
             outfile <- file.path(output_dir, paste0(basename, '_merged_predictions.csv'))
+            cat('Merged predictions saved to', outfile,'\n')
         } else {
             outfile <- file.path(output_dir, paste0(basename, '_merged_preds_composite_scores.csv'))
         }
         write.csv(all_preds, outfile, row.names=F, quote=F, na='')
+        cat('Merged predictions + composite scores saved to', outfile,'\n')
     }
 
     return(all_preds)
@@ -2123,4 +2125,93 @@ create_trait_dict <- function(
     if (return_dict) {
         return(dict)
     }
+}
+
+
+#' Create files to use in manual RATTACA assignment
+#' 
+#' @description
+#' Merges a merged predictions file and colony dataframe, outputs sex-specific
+#' csv files with rat metadata and prediction ranks for assignment traits.
+#'
+#' @export
+#'
+#' @param predictions (character or dataframe)
+#'      R dataframe or path to the predictions file.
+#' @param colony_df (character or dataframe)
+#'      R dataframe or path to the colony dataframe.
+#' @param assign_traits (character)
+#'      Path to a text file listing assignment traits to include in the output file.
+#' @param out_dir (character)
+#'      Directory path in which to save manual assignment files.
+#' @return None. Saves a text file of variant IDs and a csv file of training rfids 
+#' and trait data into the same directory as the parameter file.
+#
+
+create_manual_assignment_files <- function(
+    predictions,
+    colony_df,
+    assign_traits,
+    out_dir)
+{
+    if (is.character(predictions) && length(predictions) == 1 && file.exists(predictions)) {
+        predictions <- read.csv(predictions)
+    } else if (!is.data.frame(predictions)) {
+        stop("predictions must be either a dataframe or a valid file path to a CSV file")
+    }
+    if (is.character(colony_df) && length(colony_df) == 1 && file.exists(colony_df)) {
+        colony_df <- read.csv(colony_df,colClasses=list('rfid'='character'))
+    } else if (!is.data.frame(colony_df)) {
+        stop("colony_df must be either a dataframe or a valid file path to a CSV file")
+    }
+    if (!file.exists(assign_traits)) {
+        stop("assign_traits must be a valid filepath")
+    }
+
+    datestamp <- format(Sys.time(), '%Y%m%d')
+    assign_traits <- readLines(assign_traits)
+    gen <- colony_df$generation[1]
+
+    # set rfid to character
+    predictions$rfid <- as.character(predictions$rfid)
+    colony_df$rfid <- as.character(colony_df$rfid)
+
+    # mark genotyped animals
+    colony_df$gtyped <- sapply(colony_df$rfid, function(x) {
+        ifelse(x %in% predictions$rfid,1,0)
+    })
+
+    # subset to only columns needed for assignment
+    colony_df <- colony_df[,c('rfid','animalid','sex','dob','gtyped','comments','breederpair')]
+    rank_cols <- paste0(assign_traits, '_rank')
+    preds <- predictions[,c('rfid',rank_cols)]
+    
+    out_df <- merge(colony_df, preds, all.x=T, by='rfid')
+
+    # add assignment columns to be filled manually
+    out_df$project_name <- 'not_assigned'
+    out_df$request_name <- 'not_assigned'
+    out_df$assignment <- 'not_assigned'
+    out_df$hsw_breeders <- 0
+    assign_cols <- paste0(assign_traits, '_assign') # these will need to be manually renamed with assignment names
+    for (col in assign_cols) {
+        out_df[[col]] <- 0
+    }
+
+    # subset by sex
+    out_m <- out_df[out_df[out_df$sex=='M'],]
+    out_f <- out_df[out_df[out_df$sex=='F'],]
+
+    outfile_df <- file.path(out_dir, past0('rattaca_gen',gen,'_manual_assign_',datestamp,'.csv'))
+    outfile_m <- file.path(out_dir, past0('rattaca_gen',gen,'_manual_assign_',datestamp,'_males.csv'))
+    outfile_f <- file.path(out_dir, past0('rattaca_gen',gen,'_manual_assign_',datestamp,'_females.csv'))
+
+    write.csv(out_df, outfile_df, row.names=F, quote=F, na='')
+    write.csv(out_m, outfile_m, row.names=F, quote=F, na='')
+    write.csv(out_f, outfile_f, row.names=F, quote=F, na='')
+
+    cat('Manual assignment files written to: \n')
+    cat('\t', outfile_df, '\n')
+    cat('\t', outfile_m, '\n')
+    cat('\t', outfile_f, '\n')
 }
