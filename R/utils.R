@@ -2011,6 +2011,9 @@ save_training_data <- function(bpar_file) {
     trait_dat <- trait_dat[,c('rfid',trait)]
     trait_dat <- trait_dat[complete.cases(trait_dat),]
 
+    # explicitly reset integer row indices to avoid duplicate rowname errors
+    rownames(trait_dat) <- NULL 
+
     # write variants and pheno data to files
     outdir <- dirname(bpar_file)    
     snp_file <- file.path(outdir, paste0(trait_var, '_train_snps'))

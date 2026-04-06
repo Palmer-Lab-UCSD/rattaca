@@ -27,7 +27,7 @@ HEADER_PREFIX <- "#"
 #'      \item{$meta}{list of key value pairs of meta data}
 #'      \item{$pars}{labeled matrix of parameters}
 #' }
-read_pars <- function(filename)
+read_pars1 <- function(filename)
 {
 
     fconn <- file(description=filename,
@@ -88,6 +88,71 @@ read_pars <- function(filename)
     return(list("meta"=meta,
                 "header"=header,
                 "data"=data))
+}
+
+# test version (orig is read_pars1)
+read_pars <- function(filename) {
+
+    all_lines <- readLines(filename)
+    
+    # split into meta, header, and data lines
+    meta_lines <- all_lines[startsWith(all_lines, "##")]
+    header_line <- all_lines[startsWith(all_lines, "#") & !startsWith(all_lines, "##")]
+    data_lines <- all_lines[!startsWith(all_lines, "#")]
+
+    # parse meta
+    meta <- list()
+    for (line in meta_lines) {
+        kv <- sub("^##", "", line)
+        key <- sub("=.*", "", kv)
+        val <- sub("[^=]+=", "", kv)
+        meta[[key]] <- type.convert(val, as.is=TRUE)
+    }
+
+    # parse header
+    proto <- data.frame(index=character(), u=character(), u_se=character())
+    header <- utils::strcapture("^#(.+),(.+),(.+)$", header_line, proto)
+
+    # parse data
+    data <- utils::read.csv(textConnection(data_lines), sep=",", header=FALSE)
+    rownames(data) <- data$V1
+    data$V1 <- NULL
+    colnames(data) <- c(header$u, header$u_se)
+    data <- as.matrix(data)
+
+    return(list("meta"=meta, "header"=header, "data"=data))
+}
+# test version
+read_pars2 <- function(filename) {
+
+    all_lines <- readLines(filename)
+    
+    # split into meta, header, and data lines
+    meta_lines <- all_lines[startsWith(all_lines, "##")]
+    header_line <- all_lines[startsWith(all_lines, "#") & !startsWith(all_lines, "##")]
+    data_lines <- all_lines[!startsWith(all_lines, "#")]
+
+    # parse meta
+    meta <- list()
+    for (line in meta_lines) {
+        kv <- sub("^##", "", line)
+        key <- sub("=.*", "", kv)
+        val <- sub("[^=]+=", "", kv)
+        meta[[key]] <- type.convert(val, as.is=TRUE)
+    }
+
+    # parse header
+    proto <- data.frame(index=character(), u=character(), u_se=character())
+    header <- utils::strcapture("^#(.+),(.+),(.+)$", header_line, proto)
+
+    # parse data
+    data <- utils::read.csv(textConnection(data_lines), sep=",", header=FALSE)
+    rownames(data) <- data$V1
+    data$V1 <- NULL
+    colnames(data) <- c(header$u, header$u_se)
+    data <- as.matrix(data)
+
+    return(list("meta"=meta, "header"=header, "data"=data))
 }
 
 
