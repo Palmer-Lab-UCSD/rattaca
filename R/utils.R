@@ -1568,7 +1568,7 @@ summarize_preds <- function(
     }
     datestamp <- format(Sys.time(), '%Y%m%d')
     outfile <- file.path(results_dir, paste0(basename, '_summary_', datestamp, '.csv'))
-    write.csv(summary, , row.names=F, quote=F, na='')
+    write.csv(summary, outfile, row.names=F, quote=F, na='')
     cat('Predictions summary saved to', outfile, '\n')
     return(summary)
 }
