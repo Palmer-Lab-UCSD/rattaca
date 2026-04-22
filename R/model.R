@@ -161,122 +161,102 @@ get_n_samples <- function(dims)
 #'
 #' @export
 #'
-#' @param intercept (double) 
-#' @param u ((q markers,) vector) 
+#' @param intercept (double)
+#' @param u ((q_markers,) vector)
 #'      vector of BLUPs, that is the expected value of the
 #'      random marker effect sizes
 #' @param sd_error (double)
 #'      standard deviation of the model error.
-#' @param int_se (NULL | double)
-#'      standard deviation of the LMM random error term.
+#' @param intercept_se (NULL | double)
+#'      standard deviation of the LMM intercept estimate.
 #' @param u_se (NULL | (q_markers,) vector)
-#'      of standard error of the BLUPs
+#'      standard errors of the BLUPs
 #'
 #' @return (function)
-#'      for generating samples from genotypes under the 
+#'      for generating samples from genotypes under the
 #'      rrBLUP LMM
-#
+#'
+#' @note
+#'      When u_se is supplied, BLUP uncertainty is propagated
+#'      independently per sample under an assumption of
+#'      diagonal posterior covariance. For correlated markers
+#'      (LD), prefer sampling from the full posterior covariance
+#'      via MASS::mvrnorm instead.
+#'
+#'      When intercept_se is supplied, a single intercept is
+#'      drawn per simulation call, representing one draw from
+#'      the posterior distribution of the model intercept. This
+#'      is shared across all samples within that call.
 gen_trait_sim_closure <- function(intercept, u, sd_error,
-                                  intercept_se=NULL, u_se=NULL)
+                                  intercept_se = NULL, u_se = NULL)
 {
-
+    
     q_markers <- length(u)
 
-    if(is.null(u_se) && is.null(intercept_se))
-    {
-        # simulate:
-        #   random error
+    has_intercept_se <- length(intercept_se) == 1
+    has_u_se         <- length(u_se) == q_markers
 
+    if (!has_u_se && !has_intercept_se) {
+
+        # simulate: random error only
         return(function(genotypes)
         {
-
             n_samples <- get_n_samples(dim(genotypes))
-
             return(predict_lmm(genotypes, u, intercept)
-                 + stats::rnorm(n_samples,
-                                0,
-                                sd=sd_error))
+                 + stats::rnorm(n_samples, 0, sd = sd_error))
         })
 
-    } else if (is.null(u_se) && length(intercept_se) == 1) {
+    } else if (!has_u_se && has_intercept_se) {
 
-        # simulate:
-        #   random error
-        #   uncertainty in intercept inference
+        # simulate: random error + uncertainty in intercept
+        # one intercept draw is shared across samples (single
+        # draw from the posterior distribution)
+        return(function(genotypes)
+        {
+            n_samples     <- get_n_samples(dim(genotypes))
+            intercept_sim <- stats::rnorm(1, intercept, sd = intercept_se)
+            return(predict_lmm(genotypes, u, intercept_sim)
+                 + stats::rnorm(n_samples, 0, sd = sd_error))
+        })
 
+    } else if (has_u_se && !has_intercept_se) {
+
+        # simulate: random error + uncertainty in BLUPs
+        # BLUPs are sampled independently per individual
         return(function(genotypes)
         {
             n_samples <- get_n_samples(dim(genotypes))
 
-            return(predict_lmm(genotypes,
-                               u,
-                               stats::rnorm(1, intercept,
-                                            sd=intercept_se))
-                 + stats::rnorm(n_samples,
-                                0,
-                                sd=sd_error))
+            trait <- apply(genotypes, 1, function(geno_row) {
+                predict_lmm(geno_row,
+                            stats::rnorm(q_markers, u, sd = u_se),
+                            intercept)
+            })
+
+            return(trait + stats::rnorm(n_samples, 0, sd = sd_error))
         })
 
-    } else if(length(u) == length(u_se) && is.null(intercept_se)) {
+    } else if (has_u_se && has_intercept_se) {
 
-        # simulate:
-        #   random error
-        #   uncertainty in BLUPs
-
+        # simulate: random error + uncertainty in BLUPs + uncertainty
+        # in intercept. BLUPs sampled per individual; intercept
+        # drawn once per simulation call.
         return(function(genotypes)
         {
-            n_samples <- get_n_samples(dim(genotypes))
+            n_samples     <- get_n_samples(dim(genotypes))
+            intercept_sim <- stats::rnorm(1, intercept, sd = intercept_se)
 
-            # TODO check whether this is correct
-            #
-            # genetic effects.  I think that under an assumption of
-            # independence we need to sample the BLUPs independently,
-            # for each sample
-            trait <- apply(genotypes,
-                           1,
-                           predict_lmm,
-                           stats::rnorm(q_markers, u, sd=u_se),
-                           intercept)
+            trait <- apply(genotypes, 1, function(geno_row) {
+                predict_lmm(geno_row,
+                            stats::rnorm(q_markers, u, sd = u_se),
+                            intercept_sim)
+            })
 
-            # return the genetic effects plus error
-            return(trait
-                + stats::rnorm(get_n_samples(dim(genotypes)),
-                               0,
-                               sd=sd_error))
-        })
-
-    } else if (length(u) == length(u_se)
-               && length(intercept_se) == 1) {
-
-        # simulate:
-        #   random error
-        #   uncertainty in BLUPs
-
-        return(function(genotypes)
-        {
-            n_samples <- get_n_samples(dim(genotypes))
-
-            # TODO check whether this is correct
-            #
-            # genetic effects.  I think that under an assumption of
-            # independence we need to sample the BLUPs independently,
-            # for each sample.  Sample unique intercepts per sample
-            trait <- apply(genotypes,
-                           1,
-                           predict_lmm,
-                           stats::rnorm(q_markers, u, sd=u_se),
-                           stats::rnorm(1, intercept, sd=intercept_se))
-
-            # return the genetic effects plus error
-            return(trait
-                + stats::rnorm(get_n_samples(dim(genotypes)),
-                               0,
-                               sd=sd_error))
+            return(trait + stats::rnorm(n_samples, 0, sd = sd_error))
         })
     }
 
-    # if the inputs do not match the expected arguments, raise error
-    stop("Wrong input")
+    stop("Wrong input: check lengths of u_se and intercept_se")
 }
 
 

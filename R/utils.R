@@ -1656,6 +1656,12 @@ make_composite_trait <- function(
     metric <- match.arg(metric)
     stat <- match.arg(stat)
 
+    cat('Calculating composite trait:', new_trait, '\n')
+    cat('Using', paste0(metric,'s'), 'for:')
+    for (trait in traits) {
+        cat('\t trait \n')
+    }
+
     if (is.character(preds)) {
         preds <- read.csv(preds)
     }
@@ -1718,6 +1724,10 @@ make_composite_trait <- function(
     new_names <- paste0(new_names, '_', metric)
     colnames(tmp_mat) <- new_names
     colnames(traits_df) <- paste0(traits, '_', metric)
+
+    # save the trait matrix
+    outfile <- paste0(new_trait, '_processed_substraits.csv')
+    outfile <- file.path(outdir)
 
     # calculate the composite trait
     new_trait_vals <- apply(tmp_mat, 1, stat)
