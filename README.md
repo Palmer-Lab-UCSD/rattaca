@@ -1,15 +1,13 @@
 # RATTACA prediction :rat::crystal_ball:
 
-:construction: Under Construction :construction:
-
-The RATTACA method uses SNP genotypes produced from low-coverage DNA sequencing 
+RATTACA uses SNP genotypes produced from low-coverage DNA sequencing 
 to predict phenotypes in HS rats, then uses these trait predictions to assign 
 for study animals with predicted extreme phenotypes. This package provides 
 helper tools for fitting linear mixed models (LMM) for prediction, and assessing 
 LMM performance under the goals of the [RATTACA](https://ratgenes.org/rattaca/) 
 project.  
 
-Predictions are calculated by estimating marker effects using the 'RR-BLUP' 
+Predictions are calculated by estimating marker effects using the 'mixed.solve()' 
 method of the [rrBLUP package](https://cran.r-project.org/web/packages/rrBLUP/index.html). 
 The primary output of this package - a set of phenotype predictions - can then 
 be used to assign rats using the [RATTACA assignment package](https://github.com/Palmer-Lab-UCSD/rattaca_assignment).

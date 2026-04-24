@@ -5,15 +5,15 @@
 \title{load trait data from csv and prepare}
 \usage{
 prep_trait_data(
-  filename,
+  pheno_dat,
   id_column,
   trait_name,
   format = c("numeric", "data.frame")
 )
 }
 \arguments{
-\item{filename}{(character)
-path to trait csv table}
+\item{pheno_dat}{(character or dataframe)
+path to trait csv table, or an R dataframe}
 
 \item{id_column}{(character)
 name of column with animal IDs whose values will be the data index names}

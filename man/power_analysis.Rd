@@ -9,7 +9,8 @@ power_analysis(
   geno_high,
   sim,
   significance_level = 0.05,
-  m_power_reps = 100
+  m_power_reps = 100,
+  trait = NULL
 )
 }
 \arguments{
@@ -28,7 +29,9 @@ larger than geno_low}
 \item{m_power_reps}{(int)}
 }
 \value{
-(double) statistical power
+(power_analysis) An object of class power_analysis: an estimate of
+statistical power (class double), with attributes for sample sizes and 
+simulated data
 }
 \description{
 Power analysis given genotypes and model simulator

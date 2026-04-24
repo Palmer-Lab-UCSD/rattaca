@@ -1,7 +1,7 @@
 Package: rattaca
 Type: Package
 Title: RATTACA: fit and predict HS rat traits from genotypes
-Version: 0.9.1
+Version: 0.9.3
 Date: 2025-04-09
 Authors: Robert Vogel [aut, cre],
     Benjamin Johnson [aut]

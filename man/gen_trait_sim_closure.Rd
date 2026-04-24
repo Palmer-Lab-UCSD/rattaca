@@ -9,25 +9,37 @@ gen_trait_sim_closure(intercept, u, sd_error, intercept_se = NULL, u_se = NULL)
 \arguments{
 \item{intercept}{(double)}
 
-\item{u}{((q markers,) vector) 
+\item{u}{((q_markers,) vector)
 vector of BLUPs, that is the expected value of the
 random marker effect sizes}
 
 \item{sd_error}{(double)
 standard deviation of the model error.}
 
-\item{u_se}{(NULL | (q_markers,) vector)
-of standard error of the BLUPs}
+\item{intercept_se}{(NULL | double)
+standard deviation of the LMM intercept estimate.}
 
-\item{int_se}{(NULL | double)
-standard deviation of the LMM random error term.}
+\item{u_se}{(NULL | (q_markers,) vector)
+standard errors of the BLUPs}
 }
 \value{
 (function)
-     for generating samples from genotypes under the 
+     for generating samples from genotypes under the
      rrBLUP LMM
 }
 \description{
 Given the parameters of the LMM return a function to
 generate independent samples from a given genotype matrix.
+}
+\note{
+When u_se is supplied, BLUP uncertainty is propagated
+     independently per sample under an assumption of
+     diagonal posterior covariance. For correlated markers
+     (LD), prefer sampling from the full posterior covariance
+     via MASS::mvrnorm instead.
+
+     When intercept_se is supplied, a single intercept is
+     drawn per simulation call, representing one draw from
+     the posterior distribution of the model intercept. This
+     is shared across all samples within that call.
 }
