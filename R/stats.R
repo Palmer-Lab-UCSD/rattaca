@@ -464,6 +464,8 @@ get_group_means <- function(pwr_list) {
 #' number of bootstrap replicates) and enables writing results, including 
 #' simulated data, to file.
 #'
+#' @export
+
 #' @param geno_low ((n_low samples, q markers) array | matrix) 
 #'      Genotypes of samples whose mean predicted value is
 #'      less than geno_high
