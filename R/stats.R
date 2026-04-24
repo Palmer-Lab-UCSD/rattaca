@@ -465,7 +465,7 @@ get_group_means <- function(pwr_list) {
 #' simulated data, to file.
 #'
 #' @export
-
+#'
 #' @param geno_low ((n_low samples, q markers) array | matrix) 
 #'      Genotypes of samples whose mean predicted value is
 #'      less than geno_high
@@ -510,7 +510,7 @@ rattaca_power <- function(
 
     pwr_list <- replicate(reps,
                           
-        power_analysis2(
+        power_analysis(
             geno_low = geno_low, 
             geno_high = geno_high, 
             sim = sim, 
