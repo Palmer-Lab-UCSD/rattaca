@@ -7,11 +7,9 @@
 #
 
 # Create a rattaca power analysis object
-new_power_class <- function(pval, group_n, n_clones, trait_sim) {
-    structure(pval, class = 'power_analysis', 
-        'n_clones' = n_clones, 
-        'group_n' = group_n, 
-        'trait_sim' = trait_sim)
+new_power_class <- function(pval, trait, n_low, n_high, n_clones, trait_sim) {
+    structure(pval, class = "power_analysis", 
+              'trait' = trait, 'n_clones' = n_clones, 'n_low' = n_low, 'n_high' = n_high, 'trait_sim' = trait_sim)
 }
 
 # function to check if a vector of IDs includes clones
