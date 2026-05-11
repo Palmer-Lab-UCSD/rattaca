@@ -1489,11 +1489,16 @@ convert_bpar <- function(bpar_file) {
 #'      prediction results) to incorporate into the summary, or the path to 
 #'      the trait list file that names traits to include.
 #' 
-#' @param results_dir (string)
-#'      The directory path to the results folder housing output directories 
-#'      named per trait. The function will search for files within each of 
-#'      the directories named in 'traits'.
+#' @param fit_results_dir (string)
+#'      The directory path to the results folder housing output directories for
+#'      model fits named per trait. The function will search for files within 
+#'      each of the directories named in 'traits'.
 #' 
+#' @param pred_results_dir (string)
+#'      The directory path to the results folder housing output directories for
+#'      trait predictions named per trait. The function will search for files 
+#'      within each of the directories named in 'traits'.
+#'
 #' @param basename (string)
 #'      The base name for the output summary file. The final output will be 
 #'      named <basename>_summary_<datestamp>.csv.
@@ -1508,7 +1513,8 @@ convert_bpar <- function(bpar_file) {
 #
 summarize_preds <- function(
     traits,            # vector of trait names, as used for predictions
-    results_dir,       # directory containing trait-named results folders 
+    fit_results_dir,       # directory containing trait-named results folders 
+    pred_results_dir,       # directory containing trait-named results folders 
     basename = 'all_traits',
     pheno_dict = NULL) # path to csv with trait, variable_used, description columns
 {
@@ -1540,10 +1546,10 @@ summarize_preds <- function(
     for (i in 1:nrow(summary)) {
         trait <- summary$trait[i]
 
-        train_fam_file <- list.files(file.path(results_dir, trait, 'train'), pattern = '.fam$', full.names = T)
-        test_fam_file <- list.files(file.path(results_dir, trait, 'test'), pattern = '.fam$', full.names = T)
-        cv_sum <- read.csv(list.files(file.path(results_dir, trait), pattern = 'cv_summary.csv$', full.names = T))
-        pars <- read_pars(list.files(file.path(results_dir, trait), pattern = '.bpar$', full.names = T))
+        train_fam_file <- list.files(file.path(fit_results_dir, trait, 'train'), pattern = '.fam$', full.names = T)
+        test_fam_file <- list.files(file.path(pred_results_dir, trait, 'test'), pattern = '.fam$', full.names = T)
+        cv_sum <- read.csv(list.files(file.path(fit_results_dir, trait), pattern = 'cv_summary.csv$', full.names = T))
+        pars <- read_pars(list.files(file.path(fit_results_dir, trait), pattern = '.bpar$', full.names = T))
 
         summary$n_train[i] <- system(paste('cat', train_fam_file, '| wc -l'), intern = T)
         summary$n_test[i] <- system(paste('cat', test_fam_file, '| wc -l'), intern = T)
@@ -1561,13 +1567,14 @@ summarize_preds <- function(
             summary$source_file[i] <- dict$source_file
         }
     }
+
     if (!is.null(pheno_dict)) {
         col_order <- c('trait','heritability','n_train','n_test', 'n_snps','mean_r_sq','mean_r','mean_rho',
                        'description','covariates','variable_used','source_file')
         summary <- summary[,col_order]
     }
     datestamp <- format(Sys.time(), '%Y%m%d')
-    outfile <- file.path(results_dir, paste0(basename, '_summary_', datestamp, '.csv'))
+    outfile <- file.path(pred_results_dir, paste0(basename, '_summary_', datestamp, '.csv'))
     write.csv(summary, outfile, row.names=F, quote=F, na='')
     cat('Predictions summary saved to', outfile, '\n')
     return(summary)
