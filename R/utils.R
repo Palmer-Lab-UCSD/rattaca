@@ -2018,30 +2018,45 @@ printout <- function(str) {
 save_training_data <- function(bpar_file) {
 
     pars <- read_pars(bpar_file)
+    dat <- pars$data
     
     # get variant IDs used in the model
-    dat <- pars$data
     snp_ids <- rownames(dat)
-
+    
     # get RFIDs and trait values used to train the model
     trait <- pars$meta$trait_name
     trait_var <- pars$meta$trait_source_variable
-    trait_dat <- pars$meta$trait_file
-    trait_dat <- read.csv(trait_dat)
-    trait_dat <- trait_dat[,c('rfid',trait)]
-    trait_dat <- trait_dat[complete.cases(trait_dat),]
+    trait_file_path <- pars$meta$trait_file
+
+    # diagnostic check before proceeding
+    cat('trait:', trait, '\n')
+    cat('trait_var:', trait_var, '\n')
+    cat('trait_file_path:', trait_file_path, '\n')
+
+    if (is.null(trait_file_path) || is.na(trait_file_path) || !file.exists(trait_file_path)) {
+        stop(paste('trait_file not found in bpar metadata or file does not exist:', trait_file_path))
+    }
+
+    trait_dat <- read.csv(trait_file_path)
+
+    if (!trait %in% colnames(trait_dat)) {
+        stop(paste('trait column', trait, 'not found in phenotype file. Columns:', paste(colnames(trait_dat), collapse=', ')))
+    }
+
+    trait_dat <- trait_dat[, c('rfid', trait)]
+    trait_dat <- trait_dat[complete.cases(trait_dat), ]
 
     # explicitly reset integer row indices to avoid duplicate rowname errors
-    rownames(trait_dat) <- NULL 
+    rownames(trait_dat) <- NULL
 
     # write variants and pheno data to files
     outdir <- dirname(bpar_file)    
     snp_file <- file.path(outdir, paste0(trait_var, '_train_snps'))
-    trait_file <- file.path(outdir, paste0(trait_var, '_train_pheno.csv'))
+    out_trait_file <- file.path(outdir, paste0(trait_var, '_train_pheno.csv'))
     
     writeLines(snp_ids, snp_file)
-    write.table(trait_dat, trait_file, sep=',', row.names=F, col.names=F, quote=F, na='')
-
+    write.table(trait_dat, out_trait_file, sep=',', row.names=FALSE, col.names=FALSE, quote=FALSE, na='')
+    cat('Training data saved to', out_trait_file, '\n')
 }
 
 
