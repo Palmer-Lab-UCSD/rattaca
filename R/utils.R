@@ -1641,9 +1641,9 @@ summarize_preds <- function(
 #' @param output_dir (string)
 #'      (Default NULL) The directory path in which to save output files
 #' 
-#' @return Returns nothing to the R console. Saves csv files for trait 
-#'      correlations and composite trait values, plus png files plotting trait
-#'      correlations.
+#' @return A dataframe with calculated traits, ranks, and zscores. Saves csv 
+#'      files for trait correlations and composite trait values, plus png files 
+#'      plotting trait correlations.
 #
 make_composite_trait <- function(
     preds, # df or path to predictions csv
@@ -1656,133 +1656,134 @@ make_composite_trait <- function(
     plot_mar=c(0, 0, 8, 0), 
     plot_oma=c(0, 0, 2, 2),
     title_line=7,
-    output_dir = NULL)
+    outdir)
 {
-    library(corrplot) # for plotting composite trait correlations
-
+    library(corrplot)
     metric <- match.arg(metric)
     stat <- match.arg(stat)
-
-    cat('Calculating composite trait:', new_trait, '\n')
-    cat('Using', paste0(metric,'s'), 'for:')
+    cat("Calculating composite trait:", new_trait, "\n")
+    cat("Using", paste0(metric, "s"), "for:")
     for (trait in traits) {
-        cat('\t trait \n')
+        cat("\t trait \n")
     }
-
     if (is.character(preds)) {
         preds <- read.csv(preds)
     }
 
-    traits_df <- preds[,traits]
+    outdir <- file.path(outdir, new_trait)
+    dir.create(outdir, recursive = TRUE, showWarnings = FALSE)
 
-    # matrix to store data for relevant traits
+    # empty matrix in which to save modified trait values
+    traits_df <- preds[, traits]
     tmp_mat <- matrix(nrow = nrow(preds), ncol = length(traits))
     colnames(tmp_mat) <- traits
     rownames(tmp_mat) <- as.character(preds$rfid)
 
-    # negate data as needed, save to matrix
+    # modify trait values
     trait_dat <- list()
     new_names <- c()
+    func_str <- paste(new_trait, '=', paste0(stat,'('))
     for (i in 1:length(traits)) {
-        
         trait <- traits[i]
         trait_name <- trait
+        trait_str <- paste0(metric, '(', trait, ')')
+        if (i > 1) func_str <- paste0(func_str, ',') 
         needs_negation <- negate[i]
         needs_inversion <- invert[i]
-        rank_col <- paste0(trait, '_rank')
-        zscore_col <- paste0(trait, '_zscore')
-        use_col <- ifelse(metric == 'rank', rank_col, zscore_col)
-
+        rank_col <- paste0(trait, "_rank")
+        zscore_col <- paste0(trait, "_zscore")
+        use_col <- ifelse(metric == "rank", rank_col, zscore_col)
         trait_vals <- as.vector(preds[[use_col]])
-
-        # negation: switches orientation of predictions
-        # high ranks become low ranks, low ranks become high
-        # negative zscores become positive, positive zscores become negative while maintaining magnitude
         if (needs_negation) {
-            trait_name <- paste0(trait_name, '_negated')
-            if (metric == 'rank') {
-                max_pred <- max(trait_vals) 
+            trait_name <- paste0(trait_name, "_negated")
+            trait_str <- paste('-1 *', trait_str)
+            if (metric == "rank") {
+                max_pred <- max(trait_vals)
                 trait_vals <- max_pred + 1 - trait_vals
-            } else if (metric == 'zscore') {
+            }
+            else if (metric == "zscore") {
                 trait_vals <- trait_vals * -1
             }
-        }
-
-        # inversion: switches priority from extreme to intermediate predictions
-        # high and low ranks become intermediate, intermediate become high or low while maintaining orientation
-        # small magnitude zscores become large, large magnitude zscores become small while maintaining high/low orientation
+        }  
         if (needs_inversion) {
-            trait_name <- paste0(trait_name, '_inverted')
-            if (metric == 'rank') {
+            trait_name <- paste0(trait_name, "_inverted")
+            trait_str <- paste0('1 / (', trait_str, ')')
+            if (metric == "rank") {
                 median_pred <- median(trait_vals)
                 trait_vals <- 1/(trait_vals - median_pred)
-            } else if (metric == 'zscore') {
-                trait_vals[which(trait_vals==0)] <- 1/1e9
-                trait_vals <- 1/trait_vals           
+            }
+            else if (metric == "zscore") {
+                trait_vals[which(trait_vals == 0)] <- 1/1e+09
+                trait_vals <- 1/trait_vals
             }
         }
-    
-        tmp_mat[,i] <- trait_vals
+        func_str <- paste(func_str, trait_str)
+        tmp_mat[, i] <- trait_vals
         new_names[i] <- trait_name
-
-    } # end of traits loop
-
-    # finalize modified trait names
-    new_names <- paste0(new_names, '_', metric)
+        print(func_str)
+    }
+    func_str <- paste(func_str, ')')
+    print(func_str)
+    writeLines(func_str, file.path(outdir, paste0(new_trait, '_function')))
+    
+    new_names <- paste0(new_names, "_", metric)
     colnames(tmp_mat) <- new_names
-    colnames(traits_df) <- paste0(traits, '_', metric)
+    colnames(traits_df) <- paste0(traits, "_", metric)
 
-    # save the trait matrix
-    outfile <- paste0(new_trait, '_processed_substraits.csv')
-    outfile <- file.path(outdir)
+    # save processed subtraits
+    outfile <- paste0(new_trait, "_processed_substraits.csv")
+    outfile <- file.path(outdir, outfile)
+    tmp_df <- as.data.frame(tmp_mat)
+    tmp_df$rfid <- rownames(tmp_mat)
+    print(head(tmp_df))
+    tmp_df <- tmp_df[,c(ncol(tmp_df),1:(ncol(tmp_df)-1))]
+    write.csv(tmp_df, outfile, row.names=F, quote=F, na='')
 
     # calculate the composite trait
     new_trait_vals <- apply(tmp_mat, 1, stat)
-
-    new_trait_metrics <- get_ranks_zscores(
-        predictions = new_trait_vals,
+    new_trait_metrics <- get_ranks_zscores(predictions = new_trait_vals, 
         trait = new_trait)
 
-    # save new trait values, ranks, zscores to df
-    new_vals_df <- data.frame(
-        rfid = names(new_trait_vals),
-        new_trait = new_trait_vals)
+    # save the composite trait to df
+    new_vals_df <- data.frame(rfid = names(new_trait_vals), new_trait = new_trait_vals)
     names(new_vals_df)[2] <- new_trait
-
-    new_metrics_df <- data.frame(
-        rfid = names(new_trait_metrics$rank),
-        rank = new_trait_metrics$rank,
-        zscore = new_trait_metrics$z_score)
-    names(new_metrics_df) <- c('rfid', paste0(new_trait, '_rank'), paste0(new_trait, '_zscore'))
-
-    out_df <- merge(new_vals_df, new_metrics_df, by = 'rfid')
-
-    # add the new trait to the traits dataframe/matrix
-    # to plot trait correlations
+    new_metrics_df <- data.frame(rfid = names(new_trait_metrics$rank), 
+        rank = new_trait_metrics$rank, zscore = new_trait_metrics$z_score)
+    names(new_metrics_df) <- c("rfid", paste0(new_trait, "_rank"), 
+        paste0(new_trait, "_zscore"))
+    out_df <- merge(new_vals_df, new_metrics_df, by = "rfid")
     traits_df[[new_trait]] <- new_trait_vals
-    traits_mat <- cbind(tmp_mat, new_trait_vals); colnames(traits_mat)[i+1] <- new_trait
-    corr_df <- cor(traits_df, method='spearman')
-    corr_mat <- cor(traits_mat, method='spearman')
-    
-    if (!is.null(output_dir)) {
-        dir.create(output_dir, showWarnings = FALSE)
-        cat('Saving composite trait data to', paste0(output_dir,'/'), '\n')
-        write.csv(out_df, file.path(output_dir, paste0(new_trait, '_composite_scores.csv')),
-                  row.names=F, quote=F, na='')
-        write.csv(corr_df, file.path(output_dir, paste0(new_trait, '_corr_raw_traits.csv')),
-                  row.names=T, quote=F)
-        write.csv(corr_mat, file.path(output_dir, paste0(new_trait, '_corr_altered_traits.csv')),
-                  row.names=T, quote=F)
-        png(file.path(output_dir, paste0(new_trait, '_corrplots.png')), width=11, height=7, units='in', res=300)
-        par(mfrow=c(1,2), mar=plot_mar, oma=plot_oma) 
-        corrplot(corr_df, type = 'upper', order = 'original', tl.col = 'black')
-        mtext('raw sub-traits', side=3, line=title_line, cex=1.5, font=2)
-        mtext(new_trait, side=3, line=title_line + 1.6, cex=1.5, font=2)
-        corrplot(corr_mat, type = 'upper', order = 'original', tl.col = 'black')
-        mtext('modified sub-traits', side=3, line=title_line, cex=1.5, font=2)
-        mtext(new_trait, side=3, line=title_line + 1.6, cex=1.5, font=2)
-        dev.off()
-    }
+    traits_mat <- cbind(tmp_mat, new_trait_vals)
+    colnames(traits_mat)[i + 1] <- new_trait
+    corr_df <- cor(traits_df, method = "spearman")
+    corr_mat <- cor(traits_mat, method = "spearman")
+        
+    cat("Saving composite trait data to", paste0(outdir, 
+        "/"), "\n")
+    write.csv(out_df, file.path(outdir, paste0(new_trait, 
+        "_composite_scores.csv")), row.names = F, quote = F, 
+        na = "")
+    write.csv(corr_df, file.path(outdir, paste0(new_trait, 
+        "_corr_raw_traits.csv")), row.names = T, quote = F)
+    write.csv(corr_mat, file.path(outdir, paste0(new_trait, 
+        "_corr_altered_traits.csv")), row.names = T, quote = F)
+    png(file.path(outdir, paste0(new_trait, "_corrplots.png")), 
+        width = 11, height = 7, units = "in", res = 300)
+    par(mfrow = c(1, 2), mar = plot_mar, oma = plot_oma)
+    corrplot(corr_df, type = "upper", order = "original", 
+        tl.col = "black")
+    mtext("raw sub-traits", side = 3, line = title_line, 
+        cex = 1.5, font = 2)
+    mtext(new_trait, side = 3, line = title_line + 1.6, cex = 1.5, 
+        font = 2)
+    corrplot(corr_mat, type = "upper", order = "original", 
+        tl.col = "black")
+    mtext("modified sub-traits", side = 3, line = title_line, 
+        cex = 1.5, font = 2)
+    mtext(new_trait, side = 3, line = title_line + 1.6, cex = 1.5, 
+        font = 2)
+    dev.off()
+
     return(out_df)
 }
 
