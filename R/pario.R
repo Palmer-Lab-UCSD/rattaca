@@ -33,7 +33,7 @@ read_pars <- function(filename)
     fconn <- file(description=filename,
                   open="rt")
 
-    # load meta data
+    # load metadata
 
     # user R's implementation of regex capture groups for
     # extracting key value pairs.
@@ -90,8 +90,6 @@ read_pars <- function(filename)
                 "data"=data))
 }
 
-# TODO: how to close file connections in R upon an error
-# TODO: add misc. key val pair inputs using ellipses to input args
 
 #' Write inferred parameters to file
 #'
