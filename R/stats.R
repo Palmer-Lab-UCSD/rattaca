@@ -530,6 +530,8 @@ rattaca_power <- function(
 
 #' Estimate goodness-of-fit statistics for a set of predictions
 #'
+#' @export
+#' 
 #' @param observed  (numeric) observed trait values
 #' 
 #' @param predicted (numeric) predictions, aligned with `observed`
@@ -553,6 +555,8 @@ compute_gof <- function(observed, predicted)
 #' on all observations and predictions (appended across all folds of a 
 #' cross validation)
 #' 
+#' @export
+#' 
 #' @param mod (list) 
 #'      A RATTACA model object, as output by fit()
 #' 
@@ -575,6 +579,8 @@ mod_gof <- function(mod, cv) {
 #' @description
 #' Extracts goodness-of-fit statistics from each fold of a cross validation, 
 #' and estimates joint statistics across all folds
+#' 
+#' @export
 #' 
 #' @param cv (list) 
 #'      Results from a single k-fold cross validation, as output by kfold_cv()
