@@ -6,7 +6,8 @@
 \usage{
 summarize_preds(
   traits,
-  results_dir,
+  fit_results_dir,
+  pred_results_dir,
   basename = "all_traits",
   pheno_dict = NULL
 )
@@ -17,10 +18,15 @@ A vector of trait names(s) (corresponding to directory names with
 prediction results) to incorporate into the summary, or the path to 
 the trait list file that names traits to include.}
 
-\item{results_dir}{(string)
-The directory path to the results folder housing output directories 
-named per trait. The function will search for files within each of 
-the directories named in 'traits'.}
+\item{fit_results_dir}{(string)
+The directory path to the results folder housing output directories for
+model fits named per trait. The function will search for files within 
+each of the directories named in 'traits'.}
+
+\item{pred_results_dir}{(string)
+The directory path to the results folder housing output directories for
+trait predictions named per trait. The function will search for files 
+within each of the directories named in 'traits'.}
 
 \item{basename}{(string)
 The base name for the output summary file. The final output will be 

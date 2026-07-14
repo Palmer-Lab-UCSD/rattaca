@@ -16,7 +16,7 @@ make_composite_trait(
   plot_mar = c(0, 0, 8, 0),
   plot_oma = c(0, 0, 2, 2),
   title_line = 7,
-  output_dir = NULL
+  outdir
 )
 }
 \arguments{
@@ -70,9 +70,9 @@ plot title. This may need tweaking for aesthetic plotting.}
 (Default NULL) The directory path in which to save output files}
 }
 \value{
-Returns nothing to the R console. Saves csv files for trait 
-     correlations and composite trait values, plus png files plotting trait
-     correlations.
+A dataframe with calculated traits, ranks, and zscores. Saves csv 
+     files for trait correlations and composite trait values, plus png files 
+     plotting trait correlations.
 }
 \description{
 Reads trait predictions and modifies them to negate or invert their ranks 

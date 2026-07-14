@@ -4,7 +4,7 @@
 \alias{kfold_cv}
 \title{Perform a k-fold cross-validation on rrBLUP predictions for one trait}
 \usage{
-kfold_cv(data, num_folds, out_dir)
+kfold_cv(data, num_folds, out_dir = NULL)
 }
 \arguments{
 \item{data}{(list)

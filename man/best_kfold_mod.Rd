@@ -9,13 +9,14 @@ best_kfold_mod(crossval_list)
 }
 \arguments{
 \item{crossval_list}{(list)
-A list with results from multiple k-fold cross-validations. Each
-element must be a list as produced by kfold_cv() tested on
-a different genomic dataset}
+A list as produced by kfold_cv(), or a list with results from multiple 
+k-fold cross-validations, in which each top-level element was produced
+by kfold_cv().}
 }
 \value{
 The integer value identifying the list element with the best
-     mean cross-validation performance
+     joint cross-validation performance: the best pearson correlation between
+     all observations and predictions (results from all folds combined).
 }
 \description{
 Given results from multiple k-fold cross-validations, identify the
