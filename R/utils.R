@@ -1018,40 +1018,25 @@ best_fold <- function(cv_results,
 #' @export
 #'
 #' @param crossval_list (list)
-#'      A list with results from multiple k-fold cross-validations. Each
-#'      element must be a list as produced by kfold_cv() tested on
-#'      a different genomic dataset 
+#'      A list as produced by kfold_cv(), or a list with results from multiple 
+#'      k-fold cross-validations, in which each top-level element was produced
+#'      by kfold_cv().
 #' 
 #' @return The integer value identifying the list element with the best
-#'      mean cross-validation performance
+#'      joint cross-validation performance: the best pearson correlation between
+#'      all observations and predictions (results from all folds combined).
 #
 best_kfold_mod <- function(crossval_list)
 {
-    if (length(crossval_list) == 1)
-        stop('Must include results from >1 cross-validation run')
-    
-    mean_cv_perf <- numeric()
-    
-    # get the mean pearson correlation coef for each CV fold
-    for (i in 1:length(crossval_list)){
-    
-        cv <- crossval_list[[i]]
-        cv_test <- cv$test
-        fold_r <- numeric()
+    # get the joint pearson correlation across all folds for each model
+    mod_r <- lapply(crossval_list, function(x) {
+        cv_obs  <- unlist(lapply(x$test, `[[`, 'obs'))
+        cv_pred <- unlist(lapply(x$test, `[[`, 'pred'))
+        compute_gof(cv_obs, cv_pred)$pearson_corr
+    })
 
-        for (j in 1:length(cv_test)){
-            
-            fold_r <- c(fold_r, cv_test[[j]]$pearson_corr)
-        }
-        
-        mean_r <- mean(fold_r)
-        mean_cv_perf <- c(mean_cv_perf, mean_r)
-    }
-    
-    # identify the fold with the best performance
-    top_mod <- which.max(mean_cv_perf)
-    
-    return(top_mod)
+    # choose the model with the top joint r
+    which.max(mod_r)
 }
 
 
