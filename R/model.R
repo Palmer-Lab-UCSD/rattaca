@@ -127,23 +127,9 @@ fit <- function(trait, genotypes)
     if (!is_genotype(genotypes))
         stop("Not genotype data")
 
-
-    # TODO: check that row names match?
     out <- rrBLUP::mixed.solve(trait,
                                Z = genotypes,
                                SE = TRUE)
-
-    tmp_predict <- predict_lmm(genotypes,
-                           out$u,
-                           out$beta)
-
-
-    # goodness-of-fit measures
-    out[["r_sq"]] <- compute_r_sq(trait, tmp_predict)
-    out[["pearson_corr"]] <- stats::cor(trait, tmp_predict,
-                                 method="pearson")
-    out[["spearman_corr"]] <- stats::cor(trait, tmp_predict,,
-                                  method="spearman")
 
     return(out)
 }
@@ -353,19 +339,15 @@ validate_test_preds <- function(phenotypes,
 
     # predict on the test set using u, beta from the trained model
     test_pred <- predict_lmm(genotypes, fitted_mod$u, fitted_mod$beta)
- 
-    # goodness-of-fit measures
-    rho <- cor(test_pred, phenotypes, method='spearman')
-    r <- cor(test_pred, phenotypes, method='pearson')
-    r_sq <- compute_r_sq(phenotypes, test_pred)
-    
-    # add updated performance metrics to original output from fit()
+     
+    # save goodness-of-fit measures
     out <- fitted_mod
-    out$r_sq <- r_sq
-    out$pearson_corr <- r
-    out$spearman_corr <- rho
-    out$obs <- phenotypes
+    out$obs  <- phenotypes
     out$pred <- test_pred
-    
+
+    gof <- compute_gof(phenotypes, test_pred)
+    out[names(gof)] <- gof   
+
     return(out)
 }
+

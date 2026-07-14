@@ -225,7 +225,7 @@ impute <- function(genotypes)
 #'      training sample (as produced by fit()), and (3) the list of k model
 #'      validations of each test sample (as produced by validate_test_preds())
 #
-kfold_cv <- function(data, num_folds, out_dir)
+kfold_cv <- function(data, num_folds, out_dir=NULL)
 {
             
     # set up k-fold cross validation: train/test split on RATS
@@ -288,51 +288,7 @@ kfold_cv <- function(data, num_folds, out_dir)
     model_results <- list(trait = data$trait, splits = splits, train = train_fits, test = test_fits)
 
     # write cross-validation results to files
-    save_cv_results(model_results, out_dir)
-
-    # test_results <- model_results$test
-    
-    # obs <- c()
-    # pred <- c()
-    # r_sq <- c()
-    # r <- c()
-    # rho <- c()
-    # fold <- c()
-
-    # for (k in 1:length(test_results)) {
-    #     out <- model_results$test[[k]]
-    #     obs <- c(obs, out$obs)
-    #     pred <- c(pred, out$pred)
-    #     fold <- c(fold, rep(k, length(out$obs)))
-    #     r_sq <- c(r_sq, rep(out$r_sq, length(out$obs)))
-    #     r <- c(r, rep(out$pearson_corr, length(out$obs)))
-    #     rho <- c(rho, rep(out$spearman_corr, length(out$obs)))
-    # }
-
-    # cv_df <- data.frame(
-    #     rfid = names(obs),
-    #     trait = rep(trait, length(obs)),
-    #     fold = fold,
-    #     obs = obs,
-    #     pred = pred,
-    #     r_sq = r_sq,
-    #     r = r,
-    #     rho = rho)
-    # outfile <- paste0(data$trait,'_',num_folds,'fold_cv.csv')
-    # outfile <- file.path(out_dir, outfile)
-    # write.csv(cv_df, outfile, row.names=F, quote=F, na='')
-    # cat('Cross-validation dataset written to', outfile, '\n')
-
-    # summary_df <- data.frame(
-    #     trait = trait,
-    #     fold = unique(fold),
-    #     r_sq = unique(r_sq),
-    #     r = unique(r),
-    #     rho = unique(rho))
-    # outfile <- paste0(data$trait,'_',num_folds,'fold_cv_summary.csv')
-    # outfile <- file.path(out_dir, outfile)
-    # write.csv(summary_df, outfile, row.names=F, quote=F, na='')
-    # cat('Cross-validation summary written to', outfile, '\n\n')
+    if (!is.null(out_dir)) save_cv_results(model_results, out_dir)
 
     return(model_results)
 } 
@@ -564,11 +520,96 @@ rattaca_power <- function(
             outfile <- paste0(trait,'_power_n',tests_per_rep,'_tests_',rep_str,'.csv')
             outfile <- file.path(sim_dir, outfile)
             write.csv(trait_sim, outfile, row.names=F, quote=F, na='')
-            cat(trait, 'power simulations written to', outfile, '\n')
 
         })
     }
     
     return(summary)
 
+}
+
+#' Estimate goodness-of-fit statistics for a set of predictions
+#'
+#' @param observed  (numeric) observed trait values
+#' 
+#' @param predicted (numeric) predictions, aligned with `observed`
+#' 
+#' @return named list of r_sq, pearson_corr, spearman_corr
+#' 
+compute_gof <- function(observed, predicted)
+{
+    out <- list(
+        r_sq          = compute_r_sq(observed, predicted),
+        pearson_corr  = stats::cor(observed, predicted, method = "pearson"),
+        spearman_corr = stats::cor(observed, predicted, method = "spearman")
+    )
+    return(out)
+}
+
+#' Append goodness-of-fit statistics to a model object
+#' 
+#' @description
+#' Calculates joint goodness-of-fit statistics for a model fit by estimating
+#' on all observations and predictions (appended across all folds of a 
+#' cross validation)
+#' 
+#' @param mod (list) 
+#'      A RATTACA model object, as output by fit()
+#' 
+#' @param cv (list) 
+#'      Results from a single k-fold cross validation, as output by kfold_cv()
+#' 
+#' @return The input object 'mod', with goodness-of-fit statistics appendend to
+#'      the list object.
+#
+mod_gof <- function(mod, cv) {
+    cv_obs  <- unlist(lapply(cv$test, `[[`, "obs"))
+    cv_pred <- unlist(lapply(cv$test, `[[`, "pred"))
+    gof <- compute_gof(cv_obs, cv_pred)
+    mod[names(gof)] <- gof
+    return(mod)
+}
+
+#' Get the 'spread' of goodness-of-fit statistics for all cross validation folds
+#'
+#' @description
+#' Extracts goodness-of-fit statistics from each fold of a cross validation, 
+#' and estimates joint statistics across all folds
+#' 
+#' @param cv (list) 
+#'      Results from a single k-fold cross validation, as output by kfold_cv()
+#' 
+#' @param outdir (character)
+#'      (default NULL) The directory in which to save the output df
+#' 
+#' @return A dataframe of per-fold and joint goodness-of-fit statistics.
+#
+gof_spread <- function(cv, outdir=NULL) {
+
+    # df of per-fold goodness-of-fit statistics
+    gof_df <- data.frame(
+        fold = seq_len(length(cv[['test']])),
+        r_sq = unlist(lapply(cv[['test']], `[[`,'r_sq')),
+        pearson_corr = unlist(lapply(cv[['test']], `[[`,'pearson_corr')),
+        spearman_corr = unlist(lapply(cv[['test']], `[[`,'spearman_corr'))
+    )
+    
+    # estimate joint goodness-of-fit stats across folds
+    cv_obs  <- unlist(lapply(cv$test, `[[`, "obs"))
+    cv_pred <- unlist(lapply(cv$test, `[[`, "pred"))
+    gof <- compute_gof(cv_obs, cv_pred)
+    names(gof) <- NULL
+
+    # append joint results to df
+    gof_df <- rbind(gof_df, c('joint', gof))
+
+    if (!is.null(outdir)) {
+        k <- length(cv$test)
+        trait <- cv$trait
+        outfile <- paste0(trait, '_', k,'fold_gof.csv')
+        outfile <- file.path(outdir, outfile)
+        write.csv(gof_df, outfile, row.names=F, quote=F, na='')
+    }
+    
+    return(gof_df)
 }
