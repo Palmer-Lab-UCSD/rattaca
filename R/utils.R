@@ -1140,7 +1140,6 @@ plot_kfold <- function(kfold_results, output_dir) {
         
         plot_dat <- test_dat[[i]]
         plot_df <- test_df[test_df$kfold==i,]
-        plot_col <- 'black' #viridis(0.1,0.1,0.1) # make this relate to i somehow
         plot_col <- plot_cols[i]
         lm <- lm(pred ~ obs, plot_df)
         lms[[i]] <- lm
@@ -1168,7 +1167,6 @@ plot_kfold <- function(kfold_results, output_dir) {
     rho <- paste0("rho: ", round(rho,3))
     m <- paste0("m: ", round(mean(lm_slope),3))
     str <- paste('mean', paste(r_sq, r, rho, m, sep = "  |  "))
-    # abline(lm, lwd =2)
     mtext(str,side=3,adj=0.05,line=0.2,cex=1.1)
 
     dev.off()
@@ -1191,7 +1189,6 @@ plot_kfold <- function(kfold_results, output_dir) {
         
         plot_dat <- test_dat[[i]]
         plot_df <- test_df[test_df$kfold==i,]
-        plot_col <- 'black' #viridis(0.1,0.1,0.1) # make this relate to i somehow
         plot_col <- plot_cols[i]
         lm <- lm(pred ~ obs, plot_df)
         lms[[i]] <- lm
@@ -1219,7 +1216,6 @@ plot_kfold <- function(kfold_results, output_dir) {
     rho <- paste0("rho: ", round(rho,3))
     m <- paste0("m: ", round(mean(lm_slope),3))
     str <- paste('mean', paste(r_sq, r, rho, m, sep = "  |  "))
-    # abline(lm, lwd =2)
     mtext(str,side=3,adj=0.05,line=0.2,cex=1.1)
 
     dev.off()
