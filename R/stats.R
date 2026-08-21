@@ -57,7 +57,7 @@ count_clones <- function(ids) {
 #' statistical power (class double), with attributes for sample sizes and 
 #' simulated data
 #
-power_analysis2 <- function(geno_low, geno_high, sim,
+power_analysis <- function(geno_low, geno_high, sim,
                   significance_level=0.05,
                   m_power_reps=100,
                   trait=NULL)
