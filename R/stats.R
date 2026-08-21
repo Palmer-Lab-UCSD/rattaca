@@ -57,12 +57,12 @@ count_clones <- function(ids) {
 #' statistical power (class double), with attributes for sample sizes and 
 #' simulated data
 #
-power_analysis <- function(geno_low, geno_high, sim,
+power_analysis2 <- function(geno_low, geno_high, sim,
                   significance_level=0.05,
                   m_power_reps=100,
                   trait=NULL)
 {
-
+    
     # get samples sizes of the two groups
     n_low <- nrow(geno_low)
     n_high <- nrow(geno_high)
@@ -84,20 +84,27 @@ power_analysis <- function(geno_low, geno_high, sim,
 
     # counter for experimental successes (differences between high vs low)
     num_reject_null <- 0
+
+    # concatenate high/low genotypes
+    geno_all <- rbind(geno_high, geno_low)
+    idx_high <- seq_len(n_high)
+    idx_low  <- n_high + seq_len(n_low)
     
     for (i in seq(m_power_reps)) {
-                
-        tmp_high <- sim(geno_high)
-        tmp_low <- sim(geno_low)
 
-        # sim_pheno <- list('high' = tmp_high, 'low' = tmp_low)
+        # simulate predictions
+        sim_all  <- sim(geno_all)        # ONE effect draw, applied to high + low together
+        sim_high <- tmp_all[idx_high]
+        sim_low  <- tmp_all[idx_low]
+        
         sim_pheno_df <- data.frame(
             trait = ifelse(is.null(trait),NA,trait),
             rep = i,
-            group = c(rep('high',length(tmp_high)), rep('low',length(tmp_low))),
-            rfid = c(names(tmp_high),names(tmp_low)),
-            sim_pred = c(tmp_high, tmp_low)
+            group = c(rep('high',length(sim_high)), rep('low',length(sim_low))),
+            rfid = c(names(sim_high),names(sim_low)),
+            sim_pred = c(sim_high, sim_low)
         )
+
         # identify clones in the simulation df
         sim_pheno_df$clone <- ifelse(grepl("_", sim_pheno_df$rfid), 
                                      sub(".*_", "", sim_pheno_df$rfid), 1)
@@ -108,8 +115,8 @@ power_analysis <- function(geno_low, geno_high, sim,
 
         sim_pheno[[i]] <- sim_pheno_df
         
-        result <- stats::t.test(tmp_high, tmp_low,
-                             alternative="greater")
+        # t-test between high and low simulated predictions
+        result <- stats::t.test(sim_high, sim_low, alternative='greater')
 
         if (result$p.value < significance_level)
             num_reject_null <- num_reject_null + 1

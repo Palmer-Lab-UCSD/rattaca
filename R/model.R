@@ -164,8 +164,7 @@ get_n_samples <- function(dims)
 #'
 #' @note
 #'      When u_se is supplied, BLUP uncertainty is propagated
-#'      independently per sample under an assumption of
-#'      diagonal posterior covariance. For correlated markers
+#'      identically per sample. For correlated markers
 #'      (LD), prefer sampling from the full posterior covariance
 #'      via MASS::mvrnorm instead.
 #'
@@ -208,16 +207,14 @@ gen_trait_sim_closure <- function(intercept, u, sd_error,
     } else if (has_u_se && !has_intercept_se) {
 
         # simulate: random error + uncertainty in BLUPs
-        # BLUPs are sampled independently per individual
+        # BLUP errors are sampled identically for all individuals
         return(function(genotypes)
         {
             n_samples <- get_n_samples(dim(genotypes))
 
-            trait <- apply(genotypes, 1, function(geno_row) {
-                predict_lmm(geno_row,
+            trait <- predict_lmm(genotypes,
                             stats::rnorm(q_markers, u, sd = u_se),
                             intercept)
-            })
 
             return(trait + stats::rnorm(n_samples, 0, sd = sd_error))
         })
@@ -232,11 +229,9 @@ gen_trait_sim_closure <- function(intercept, u, sd_error,
             n_samples     <- get_n_samples(dim(genotypes))
             intercept_sim <- stats::rnorm(1, intercept, sd = intercept_se)
 
-            trait <- apply(genotypes, 1, function(geno_row) {
-                predict_lmm(geno_row,
+            trait <- predict_lmm(genotypes,
                             stats::rnorm(q_markers, u, sd = u_se),
                             intercept_sim)
-            })
 
             return(trait + stats::rnorm(n_samples, 0, sd = sd_error))
         })
