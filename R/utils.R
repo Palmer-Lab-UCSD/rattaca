@@ -1444,6 +1444,8 @@ convert_bpar <- function(bpar_file) {
 
     out$Vu <- md$variance_u
     out$Ve <- md$variance_e
+    out$Vg <- md$variance_g
+    out$h2 <- md$heritability
     out$beta <- md$intercept
     out$beta.SE <- md$intercept_se
     out$u <- dat[,1]
