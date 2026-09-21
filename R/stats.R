@@ -626,3 +626,134 @@ gof_spread <- function(cv, outdir=NULL) {
     
     return(gof_df)
 }
+
+
+#' RATTACA power calculator
+#'
+#' @description
+#' Use a fitted RATTACA model to prospectively calculate power between extreme 
+#' samples, given population and sample sizes. 
+#' 
+#' @export
+#' 
+#' @param N (int) 
+#'      The size of the total hypothetical population from which to sample extremes
+#' 
+#' @param n_high (int)
+#'      The desired sample size of the 'high' group.
+#' 
+#' @param n_low (int)
+#'      The desired sample size of the 'low' group.
+#'
+#' @param bpar (character)
+#'      The file path to a fitted model's .bpar file, as output by `write_pars()`
+#'
+#' @param alpha (float)
+#'      (default 0.05) The desired significance threshold.
+#'
+#' @param preds (numeric)
+#'      (default NULL) A vector of predictions from an entire population (e.g.,
+#'      gen110). By default, this function estimates the variance of the theoretical
+#'      predictions from the model fit. When empirical predictions are provided, 
+#'      they are used to quantify the **realized** variance of the predictions. 
+#'      This is useful for retrospective power estimation for actual assigned
+#'      samples.
+#'
+#' @return A dataframe of per-fold and joint goodness-of-fit statistics.
+#
+calc_power <- function(
+        N,             # total population size
+        n_high,        # high-group sample size
+        n_low,         # low-group sample size
+        bpar,          # path to bpar file
+        alpha = 0.05,  # probability threshold
+        preds = NULL)  # numeric: predictions for the TOTAL population
+{   
+    
+    # extract model parameters & performance metrics
+    mod <- convert_bpar(bpar)
+    vg  <- mod$Vg               # genetic variance (from model fit)
+    ve  <- mod$Ve               # residual (environmental) variance
+    pa2 <- mod$pearson_corr^2   # predictive ability² = ρ²(ĝ, Y): squared Pearson r,
+                                # predicted vs OBSERVED phenotype (NOT accuracy = ρ²(ĝ,g))    
+    
+    # Var(ĝ): variance of the predictions = coupling c × σ²_Y, with c = ability² (pa2).
+    # Var(ĝ) = r² · vg                (r² = genomic accuracy² = pa2 / h²: a fraction of GENETIC var)
+    # Var(ĝ) = pa²/h² · h²(vg + ve)   (since Vg = h²·σ²_Y)
+    # Var(ĝ) = pa² · σ²_Y             (ability² is a fraction of PHENOTYPIC var)
+    var_preds <- pa2 * (vg + ve)
+    sigma_preds <- sqrt(var_preds)  # standard deviation of ĝ
+
+    # estimate empirical variance of the real population (if provided)
+    if (!is.null(preds)) {
+        var_preds <- var(preds)
+        sigma_preds <- sqrt(var_preds)
+    } 
+    
+    ## truncated-normal moments for high/low selection from N individuals on ĝ
+    
+    # tail probability: proportion of population selected per tail
+    p_high <- n_high / N
+    p_low <- n_low / N
+    
+    # Z-scores at selection thresholds
+    z_high <- qnorm(1 - p_high)
+    z_low <- qnorm(1 - p_low)
+    
+    # standard normal density at thresholds
+    phi_z_high <- dnorm(z_high)
+    phi_z_low <- dnorm(z_low)
+    
+    # inverse Mills ratio: computes the expected value of a random variable that falls beyond the threshold
+    # E[Z | Z beyond threshold] for a standard normal
+    mills_high <- phi_z_high / p_high
+    mills_low <- phi_z_low / p_low
+    
+    # expected group means, in ĝ (prediction) units
+    E_high <- sigma_preds * mills_high
+    E_low <- -1 * sigma_preds * mills_low 
+    
+    # expected phenotypic delta: difference between group means
+    # (represents the 'true' parameter theta in the Wald test)
+    # E[Ȳ_high]−E[Ȳ_low] = E[ĝ_high]−E[ĝ_low], since (g−ĝ) and ε are mean-zero and independent of the selection on ĝ.
+    delta <- E_high - E_low
+
+    # per-individual variance of ĝ within each selected tail (truncated variance, in ĝ units)
+    # (floored at 0 for extreme selections)
+    var_high <- max(0, var_preds * (1 - mills_high * (mills_high - z_high)))
+    var_low  <- max(0, var_preds * (1 - mills_low  * (mills_low  - z_low)))
+    
+    ## estimate three independent components of Var(Δ̂) (where Δ̂ = Ȳ_high − Ȳ_low)
+    ## selection reshapes only ĝ, so only that component uses a truncated variance
+    ## every component is then averaged over its group (÷ n).
+
+    # v_trunc = within-tail ĝ: truncated per-animal variance ÷ n, summed over groups
+    # v_blup = g - ĝ: BLUP prediction error per animal, UNtruncated
+        # Var(g−ĝ) = Vg − Var(ĝ); contribution to Var(Δ̂) = (Vg​−Var(ĝ)) / n_high) + (Vg​−Var(ĝ)) / n_low)
+    # ε: residual phenotypic variance per animal, UNtruncated
+        # Var(ε) = ve/n_high + ve/n_low
+    
+    v_trunc <- (var_high / n_high) + (var_low / n_low) 
+    v_blup <- (vg - var_preds) * (1/n_high + 1/n_low) 
+    v_resid <- (ve / n_high) + (ve / n_low)
+    
+    # Var(Δ̂) for the model Y = ĝ + (g−ĝ) + ε 
+    var_delta_hat <- v_resid + v_blup + v_trunc
+    
+    # noncentrality parameter of the Wald statistic under the alternative
+    lambda <- delta^2 / var_delta_hat
+    
+    # --- Asymptotic Wald / χ² power (superseded by the t version below) -----------
+    # one-sided at level alpha: qchisq(1 - 2*alpha, 1) = qnorm(1-alpha)^2
+    # W_T <- qchisq(1 - 2*alpha, df = 1)
+    # power_chisq <- 1 - pchisq(W_T, df = 1, ncp = lambda)
+
+    # --- Small-sample noncentral-t power (returned) --------------------------------
+    # treats var_delta_hat as a known SE and applies a t correction with df = n1+n2-2;
+    # ncp = delta / SE = sqrt(lambda). One-sided at level alpha.
+    df    <- n_high + n_low - 2
+    power <- 1 - pt(qt(1 - alpha, df), df = df, ncp = sqrt(lambda))
+
+    return(round(power,3))
+}
+
