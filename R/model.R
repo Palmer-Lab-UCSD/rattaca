@@ -131,6 +131,13 @@ fit <- function(trait, genotypes)
                                Z = genotypes,
                                SE = TRUE)
 
+    # genetic variance = per-marker variance component x total marker variance.
+    # NOT Vu * n_markers: that assumes unit-variance (standardized) markers,
+    # but {-1,0,1} codes have per-marker variance ~2pq < 1.
+    vg <- out$Vu * sum(apply(genotypes, 2, var))
+    out$Vg <- vg
+    out$h2 <- vg / (vg + out$Ve)
+
     return(out)
 }
 
