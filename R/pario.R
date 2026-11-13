@@ -27,7 +27,7 @@ HEADER_PREFIX <- "#"
 #'      \item{$meta}{list of key value pairs of meta data}
 #'      \item{$pars}{labeled matrix of parameters}
 #' }
-read_pars2 <- function(filename)
+read_pars <- function(filename)
 {
     fconn <- file(description = filename, open = "rt")
     on.exit(close(fconn))
