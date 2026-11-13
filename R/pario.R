@@ -27,7 +27,57 @@ HEADER_PREFIX <- "#"
 #'      \item{$meta}{list of key value pairs of meta data}
 #'      \item{$pars}{labeled matrix of parameters}
 #' }
-read_pars <- function(filename)
+read_pars2 <- function(filename)
+{
+    fconn <- file(description = filename, open = "rt")
+    on.exit(close(fconn))
+
+    meta_pattern <- paste0("^", META_PREFIX,
+                           "(", META_VALID_KEY_REGEX, "?)",   # non-greedy key
+                           META_KEY_VAL_DELIM,
+                           "(.*)$")                            # allow empty values
+    proto <- data.frame(key = character(), val = character())
+
+    meta <- list()
+    raw_line <- readLines(con = fconn, n = 1)
+
+    # consume every line that starts with the meta prefix
+    while (length(raw_line) == 1 && startsWith(raw_line, META_PREFIX))
+    {
+        kv <- utils::strcapture(meta_pattern, raw_line, proto, perl = TRUE)
+        if (!is.na(kv$key)) {
+            val <- if (nzchar(kv$val)) type.convert(kv$val, as.is = TRUE) else NA
+            # keep repeated keys (e.g. package) as a vector instead of overwriting
+            meta[[kv$key]] <- if (is.null(meta[[kv$key]])) val else c(meta[[kv$key]], val)
+        }
+        raw_line <- readLines(con = fconn, n = 1)
+    }
+
+    # header line, e.g. "#var_id,random_effect,random_effect_se"
+    header <- NULL
+    if (length(raw_line) == 1 && startsWith(raw_line, HEADER_PREFIX)) {
+        header <- strsplit(sub(paste0("^", HEADER_PREFIX), "", raw_line),
+                           FIELD_DELIM, fixed = TRUE)[[1]]
+        data <- utils::read.csv(fconn, header = FALSE, sep = FIELD_DELIM,
+                                colClasses = c("character", "numeric", "numeric"))
+    } else {
+        # no header: the line just read is the first data row
+        data <- utils::read.csv(text = c(raw_line, readLines(fconn)), header = FALSE,
+                                sep = FIELD_DELIM,
+                                colClasses = c("character", "numeric", "numeric"))
+    }
+
+    rownames(data) <- data$V1
+    data$V1 <- NULL
+    if (!is.null(header)) colnames(data) <- header[-1]
+    data <- as.matrix(data)
+
+    list(meta = meta, header = header, data = data)
+}
+
+
+# original version of read_pars() - kept temporarily during testing, just in case
+read_pars_orig <- function(filename)
 {
 
     fconn <- file(description=filename,

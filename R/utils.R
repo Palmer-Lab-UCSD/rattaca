@@ -1718,7 +1718,6 @@ make_composite_trait <- function(
     outfile <- file.path(outdir, outfile)
     tmp_df <- as.data.frame(tmp_mat)
     tmp_df$rfid <- rownames(tmp_mat)
-    print(head(tmp_df))
     tmp_df <- tmp_df[,c(ncol(tmp_df),1:(ncol(tmp_df)-1))]
     write.csv(tmp_df, outfile, row.names=F, quote=F, na='')
 
